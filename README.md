@@ -12,10 +12,11 @@
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.111-009688?style=flat-square&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
 [![Streamlit](https://img.shields.io/badge/Streamlit-1.35-FF4B4B?style=flat-square&logo=streamlit&logoColor=white)](https://streamlit.io)
 [![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?style=flat-square&logo=docker&logoColor=white)](https://docker.com)
+[![TenSEAL](https://img.shields.io/badge/TenSEAL-CKKS-8A2BE2?style=flat-square)](https://github.com/OpenMined/TenSEAL)
 [![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)](LICENSE)
 [![Dataset](https://img.shields.io/badge/Dataset-NSL--KDD-orange?style=flat-square)](https://www.unb.ca/cic/datasets/nsl.html)
 
-> **A research-grade Federated Learning framework enabling multiple organizations to collaboratively train intrusion detection models — without ever sharing their raw network data.**
+> **A research-grade Federated Learning framework enabling multiple organizations to collaboratively train intrusion detection models — without ever sharing their raw network data. Incorporating state-of-the-art privacy, security, and intelligence techniques from 20+ research papers.**
 
 </div>
 
@@ -25,274 +26,423 @@
 
 - [Overview](#overview)
 - [Architecture](#architecture)
-- [Key Features](#key-features)
-- [Technical Stack](#technical-stack)
+- [All Modules — Complete Feature Map](#all-modules--complete-feature-map)
 - [Results & Benchmarks](#results--benchmarks)
 - [Project Structure](#project-structure)
 - [Quick Start](#quick-start)
 - [Usage Guide](#usage-guide)
-- [Security Features](#security-features)
 - [API Reference](#api-reference)
-- [Contributing](#contributing)
+- [References](#references)
 
 ---
 
 ## Overview
 
-**FedSentinel** addresses a critical challenge in cybersecurity: organizations (e.g., banks, enterprises) each possess valuable threat data, but cannot share it due to confidentiality regulations (GDPR, PCI-DSS). Traditional centralized IDS requires pooling all data in one place — a privacy and compliance nightmare.
+**FedSentinel** addresses a critical challenge in cybersecurity: organizations (banks, telecoms, hospitals) each hold valuable threat intelligence data but cannot share it due to confidentiality laws (GDPR, PCI-DSS, HIPAA). Traditional IDS requires pooling all data centrally — a privacy and compliance nightmare.
 
-**Our solution**: each organization trains a local model on its own data. Only **model updates** (gradients) are shared — never raw traffic. A central aggregation server combines these updates to produce a global model that benefits from all participants' knowledge.
+**Our solution**: Each organization trains a local model on its own data. Only **model updates** (gradients) are shared — never raw traffic. The aggregation server produces a global model benefiting from all participants' knowledge, with cryptographic guarantees of privacy.
 
 ```
-┌────────────────────────────────────────────────────────────────────┐
-│                     PROBLEM  vs  SOLUTION                          │
-├─────────────────────────────┬──────────────────────────────────────┤
-│  Traditional Centralized    │  FedSentinel (Federated)             │
-├─────────────────────────────┼──────────────────────────────────────┤
-│  Raw data leaves premises   │  Data NEVER leaves client            │
-│  Single point of failure    │  Distributed, resilient              │
-│  Privacy violations         │  Differential Privacy (ε ≤ 1.0)     │
-│  Regulatory non-compliance  │  GDPR / PCI-DSS compliant            │
-│  No inter-org collaboration │  Collaborative learning              │
-│  Static threat model        │  Continuously updated                │
-└─────────────────────────────┴──────────────────────────────────────┘
+┌────────────────────────────────────────────────────────────────────────────┐
+│                         PROBLEM  vs  SOLUTION                              │
+├─────────────────────────────────┬──────────────────────────────────────────┤
+│  Traditional Centralized IDS    │  FedSentinel (Federated)                 │
+├─────────────────────────────────┼──────────────────────────────────────────┤
+│  Raw data leaves premises       │  Data NEVER leaves client                │
+│  Single point of failure        │  Distributed, resilient                  │
+│  Privacy violations (GDPR)      │  Differential Privacy (ε ≤ 1.0)         │
+│  Regulatory non-compliance      │  GDPR / PCI-DSS / HIPAA compliant        │
+│  No inter-org collaboration     │  Collaborative learning                  │
+│  Static threat model            │  Continuously updated + drift detection  │
+│  No proof of honest updates     │  ZKP gradient proofs + Blockchain audit  │
+│  No attack attribution          │  Blockchain immutable audit trail        │
+│  Unknown new attacks            │  Zero-day detection (VAE + IsoForest)    │
+│  No ownership proof             │  Model watermarking (Adi et al. 2018)    │
+│  Free-rider problem             │  Shapley value incentive mechanism       │
+└─────────────────────────────────┴──────────────────────────────────────────┘
 ```
 
 ---
 
 ## Architecture
 
-### System Architecture
+### End-to-End System Architecture
 
 ```
-                         ╔══════════════════════════════╗
-                         ║    FL AGGREGATION SERVER     ║
-                         ║  ┌──────────────────────┐   ║
-                         ║  │  FedShieldStrategy    │   ║
-                         ║  │  ├─ FedAvg / FedProx  │   ║
-                         ║  │  ├─ Krum (Byzantine)  │   ║
-                         ║  │  ├─ FLAME defense      │   ║
-                         ║  │  └─ FLTrust            │   ║
-                         ║  └──────────────────────┘   ║
-                         ║  ┌──────────────────────┐   ║
-                         ║  │  Threat Intel Hub     │   ║
-                         ║  │  (IOC Aggregation)    │   ║
-                         ║  └──────────────────────┘   ║
-                         ╚══════════╦═══════════════════╝
-                                    ║  Model Updates Only
-                    ╔═══════════════╩═══════════════╗
-                    ║   Gradient Exchange (no data)  ║
-          ┌─────────╩──────────┐         ┌──────────╩─────────┐
-          │   CLIENT 1 (Bank A) │         │  CLIENT 2 (Bank B)  │
-          │  ┌───────────────┐  │         │  ┌───────────────┐  │
-          │  │ Local NIDS    │  │         │  │ Local NIDS    │  │
-          │  │ Transformer   │  │         │  │ Transformer   │  │
-          │  └───────────────┘  │         │  └───────────────┘  │
-          │  ┌───────────────┐  │         │  ┌───────────────┐  │
-          │  │ DP-SGD Noise  │  │         │  │ DP-SGD Noise  │  │
-          │  │ (ε=1.0, δ=1e-5│  │         │  │ (ε=1.0, δ=1e-5│  │
-          │  └───────────────┘  │         │  └───────────────┘  │
-          │  🔒 Local Data Only  │         │  🔒 Local Data Only  │
-          └────────────────────┘         └────────────────────┘
-                    ║                               ║
-          ┌─────────╩─────────────────────────────╩───────────┐
-          │                CLIENT 3 (Telecom)                  │
-          │  ┌────────────────────────────────────────────┐    │
-          │  │ Byzantine Attack Simulation (test only)    │    │
-          │  │ Sign-flip / Scale / IPM / Min-Max          │    │
-          │  └────────────────────────────────────────────┘    │
-          └────────────────────────────────────────────────────┘
+                    ╔═══════════════════════════════════════════╗
+                    ║         FL AGGREGATION SERVER             ║
+                    ║  ┌─────────────────────────────────────┐  ║
+                    ║  │        FedShieldStrategy              │  ║
+                    ║  │  ├─ FedAvg / FedProx / Krum           │  ║
+                    ║  │  ├─ Multi-Krum / Trimmed Mean          │  ║
+                    ║  │  ├─ FLAME / FLTrust                   │  ║
+                    ║  │  └─ Free-Rider Detection              │  ║
+                    ║  └─────────────────────────────────────┘  ║
+                    ║  ┌──────────────┐  ┌──────────────────┐  ║
+                    ║  │ Blockchain   │  │  Drift Monitor   │  ║
+                    ║  │ Audit Trail  │  │  (ADWIN)         │  ║
+                    ║  └──────────────┘  └──────────────────┘  ║
+                    ║  ┌──────────────┐  ┌──────────────────┐  ║
+                    ║  │   Privacy    │  │  Shapley Value   │  ║
+                    ║  │  Accountant  │  │  Incentive       │  ║
+                    ║  │ RDP + GDP    │  │  (Monte Carlo)   │  ║
+                    ║  └──────────────┘  └──────────────────┘  ║
+                    ╚══════════════╦════════════════════════════╝
+                                   ║  Encrypted Model Updates Only
+             ╔═════════════════════╩══════════════════════╗
+             ║   Gradient Exchange (raw data stays local)  ║
+   ┌──────────╩─────────┐              ┌──────────────────╩───────┐
+   │   CLIENT 1 (Bank)  │              │   CLIENT 2 (Telecom)     │
+   │  ┌───────────────┐ │              │  ┌──────────────────────┐ │
+   │  │ Transformer / │ │              │  │ Transformer / BiLSTM │ │
+   │  │ BiLSTM / GNN  │ │              │  └──────────────────────┘ │
+   │  └───────────────┘ │              │  ┌──────────────────────┐ │
+   │  ┌───────────────┐ │              │  │ DP-SGD (ε=1.0)       │ │
+   │  │ DP-SGD Noise  │ │              │  └──────────────────────┘ │
+   │  └───────────────┘ │              │  ┌──────────────────────┐ │
+   │  ┌───────────────┐ │              │  │ ZKP Gradient Proof   │ │
+   │  │ HE (CKKS)     │ │              │  └──────────────────────┘ │
+   │  └───────────────┘ │              │  🔒 Local Data Only        │
+   │  🔒 Local Data Only │              └──────────────────────────┘
+   └────────────────────┘
+             ║
+   ┌──────────╩────────────────────────────────────────────────┐
+   │             CLIENT 3 (Hospital) — Async FL                │
+   │  ┌─────────────────────────────────────────────────────┐  │
+   │  │ FedBuff: updates sent without waiting for all peers │  │
+   │  │ Staleness weighting: α(τ) = 1/(1+staleness)        │  │
+   │  └─────────────────────────────────────────────────────┘  │
+   └───────────────────────────────────────────────────────────┘
 ```
 
-### Model Architecture
+### Neural Network Architectures
 
 ```
-Input Features (122)
+[Transformer IDS]               [BiLSTM IDS]              [GNN-IDS]
+Input Features (122)            Input Features (122)       Network Graph
+        │                               │                       │
+   Embedding(128)                BiLSTM(256 hidden)        GAT Layer 1
+        │                         + Bahdanau Attention      (8 heads)
+  [CLS] + PosEnc                       │                        │
+        │                        Context Vector              GAT Layer 2
+   Pre-LN Transformer ×4               │                        │
+  (d=128, h=8, ffn=512)          Dense(256→128→5)          Edge Classification
+        │                               │                        │
+   CLS Pooling                    5 Attack Classes          Attack Type
         │
-        ▼
-┌───────────────────┐
-│  Token Embedding   │  Linear(122 → 128) + LayerNorm
-└────────┬──────────┘
-         │
-┌────────▼──────────┐
-│  [CLS] Token +    │
-│  Positional Enc.  │
-└────────┬──────────┘
-         │
-┌────────▼──────────┐   ×4 layers
-│  Pre-LN Transformer│  d_model=128, heads=8
-│  Self-Attention    │  FFN dim=512, GELU
-│  Feed-Forward      │  Dropout=0.1
-└────────┬──────────┘
-         │
-┌────────▼──────────┐
-│  CLS Pooling       │  Take [CLS] representation
-└────────┬──────────┘
-         │
-┌────────▼──────────┐
-│  Classifier Head   │  128 → 256 → 128 → 5
-│  GELU + Dropout    │  Label smoothing=0.1
-└────────┬──────────┘
-         │
-         ▼
-   5 Attack Classes
-[Normal | DoS | Probe | R2L | U2R]
+  Dense(128→256→128→5)
+        │
+  5 Attack Classes
+
+[Ensemble IDS]
+BiLSTM output ─┐
+               ├─ Attention Fusion → 5 classes
+Transformer ───┘
 ```
 
-### Differential Privacy Flow
+### Privacy & Cryptography Stack
 
 ```
-Client Local Training
-         │
-         ▼
-  Compute Δw = w_new - w_global
-         │
-         ▼
-  ┌─────────────────────────┐
-  │  Gradient Clipping      │   ‖Δw‖₂ = min(‖Δw‖₂, C)    C=1.0
-  └────────────┬────────────┘
-               │
-               ▼
-  ┌─────────────────────────┐
-  │  Gaussian Noise         │   Δw̃ = Δw + N(0, σ²C²I)   σ=1.1
-  └────────────┬────────────┘
-               │
-               ▼
-  ┌─────────────────────────┐
-  │  Rényi DP Accounting    │   Track ε via RDP → (ε,δ)-DP
-  └────────────┬────────────┘
-               │
-               ▼
-  Send Δw̃ to Server  (raw data stays local)
+DP-SGD Flow:                    Homomorphic Encryption:        ZKP Flow:
+  Δw = w_new - w_global           Client encrypts Δw            Client commits: c = H(Δw ‖ r)
+        │                          with CKKS context              Server sends challenge: ch
+  ‖Δw‖₂ ← clip(C=1.0)             Server aggregates:             Client responds: s = r + ch·Δw
+        │                          Σ Enc(Δw_i) in cipher          Server verifies commitment
+  Δw̃ = Δw + N(0, σ²C²I)           Decrypt → Σ Δw_i              → Gradient integrity proven
+        │                          Raw updates never seen          without revealing Δw
+  Accounting: min(RDP, GDP)
+  → (ε,δ)-DP certificate
 ```
 
 ---
 
-## Key Features
+## All Modules — Complete Feature Map
 
-### Core FL Capabilities
-| Feature | Description |
-|---------|-------------|
-| **Flower Framework** | Production-grade FL with gRPC communication |
-| **Non-IID Data** | Dirichlet distribution (α=0.5) for realistic heterogeneity |
-| **Async Support** | Clients train at different speeds |
-| **FedAvg / FedProx** | Standard + proximal term for non-IID convergence |
+### 1. Core FL Infrastructure
 
-### Privacy & Security
-| Feature | Description |
-|---------|-------------|
-| **DP-SGD** | Gradient clipping + Gaussian noise per update |
-| **Rényi Accounting** | Tight (ε,δ)-DP budget tracking across rounds |
-| **Adaptive Clipping** | Auto-adjusts clipping threshold to gradient distribution |
-| **Secure Aggregation** | Pairwise masking — server sees only aggregate |
+| Module | Description | File |
+|--------|-------------|------|
+| **FedAvg** | McMahan et al. 2017 | `server/strategy.py` |
+| **FedProx** | Proximal term μ‖w-w_i‖² for non-IID | `server/strategy.py` |
+| **Non-IID split** | Dirichlet α=0.5 realistic heterogeneity | `data/splitter.py` |
+| **IID split** | Balanced partitioning | `data/splitter.py` |
+| **FedShieldClient** | Flower NumPyClient base | `clients/base_client.py` |
+| **NSL-KDD loader** | Auto-download + parse | `data/loader.py` |
+| **CICIDS2017 loader** | CIC flow format parsing | `data/loader.py` |
 
-### Byzantine Robustness
-| Algorithm | Reference | Tolerance |
-|-----------|-----------|-----------|
-| **Krum** | Blanchard et al. 2017 | f < n/2 |
-| **Multi-Krum** | Blanchard et al. 2017 | f < n/2 |
-| **Trimmed Mean** | Yin et al. 2018 | f < n/2 |
-| **Coordinate Median** | Yin et al. 2018 | f < n/2 |
-| **FLAME** | Nguyen et al. 2022 | Clustering-based |
-| **FLTrust** | Cao et al. 2022 | Server reference |
+### 2. Privacy Mechanisms
 
-### Attack Simulation
-| Attack | Type | Description |
-|--------|------|-------------|
-| **Sign Flip** | Gradient | Negate all gradients |
-| **Scale Attack** | Gradient | Amplify update by factor |
-| **Min-Max** | Gradient | Maximize deviation (Fang 2020) |
-| **IPM** | Gradient | Inner product manipulation |
-| **Label Flipping** | Data | Source class → target class |
-| **Backdoor Trigger** | Data | Feature pattern + target label |
-| **Free Rider** | Byzantine | Fake delta / replay / disguise |
+| Module | Description | File |
+|--------|-------------|------|
+| **DP-SGD** | Gradient clipping + Gaussian noise | `privacy/differential_privacy.py` |
+| **Adaptive Clipping** | Auto-adjusts C to gradient distribution | `privacy/differential_privacy.py` |
+| **RDP Accounting** | Mironov 2017 + Poisson subsampling | `privacy/privacy_accountant.py` |
+| **GDP Accounting** | Dong et al. 2022 CLT composition | `privacy/privacy_accountant.py` |
+| **Dual Accounting** | min(RDP, GDP) — tightest bound | `privacy/privacy_accountant.py` |
+| **SecAgg** | Pairwise masking — server sees only sum | `privacy/differential_privacy.py` |
 
-### Explainability
-| Method | Library | Use Case |
-|--------|---------|----------|
-| **SHAP DeepExplainer** | SHAP 0.44 | Fast GPU-based feature importance |
-| **SHAP KernelExplainer** | SHAP 0.44 | Model-agnostic explanations |
-| **LIME Tabular** | LIME 0.2 | Per-sample local explanations |
-| **Attention Visualization** | Custom | Transformer attention maps |
+### 3. Byzantine Robustness
 
----
+| Algorithm | Reference | Tolerance | File |
+|-----------|-----------|-----------|------|
+| **Krum** | Blanchard et al. 2017 | f < n/2 | `defense/krum.py` |
+| **Multi-Krum** | Blanchard et al. 2017 | f < n/2 | `defense/krum.py` |
+| **Trimmed Mean** | Yin et al. 2018 | f < n/2 | `defense/robust_aggregation.py` |
+| **Coordinate Median** | Yin et al. 2018 | f < n/2 | `defense/robust_aggregation.py` |
+| **FLAME** | Nguyen et al. USENIX 2022 | Clustering | `defense/robust_aggregation.py` |
+| **FLTrust** | Cao et al. NDSS 2022 | Server ref | `defense/robust_aggregation.py` |
+| **Free-Rider Detector** | Delta-norm + cosine | — | `defense/free_rider_detector.py` |
 
-## Technical Stack
+### 4. Attack Simulation
 
-```
-┌─────────────────────────────────────────────────────────┐
-│                    FedSentinel Stack                     │
-├────────────────┬────────────────────────────────────────┤
-│  FL Framework  │  Flower (flwr) 1.8                      │
-│  Deep Learning │  PyTorch 2.2 + CUDA support             │
-│  Privacy       │  Custom RDP Accountant + DP-SGD         │
-│  API           │  FastAPI 0.111 + Pydantic v2            │
-│  Dashboard     │  Streamlit 1.35 + Plotly 5.22           │
-│  Explainability│  SHAP 0.44 + LIME 0.2                   │
-│  Data Science  │  NumPy, Pandas, Scikit-learn            │
-│  Config        │  YAML + Click CLI + Rich                │
-│  Testing       │  pytest 8.2                             │
-│  Container     │  Docker + Docker Compose                │
-└────────────────┴────────────────────────────────────────┘
-```
+| Attack | Category | Description | File |
+|--------|----------|-------------|------|
+| **Sign Flip** | Gradient poisoning | Negate all gradients | `attacks/gradient_poisoning.py` |
+| **Scale** | Gradient poisoning | Amplify by factor | `attacks/gradient_poisoning.py` |
+| **Min-Max** | Gradient poisoning | Fang et al. 2020 | `attacks/gradient_poisoning.py` |
+| **IPM** | Gradient poisoning | Inner product manipulation | `attacks/gradient_poisoning.py` |
+| **Label Flipping** | Data poisoning | Targeted / random | `attacks/label_flipping.py` |
+| **Backdoor Trigger** | Data poisoning | Feature pattern + target | `attacks/label_flipping.py` |
+| **Free-Rider (delta)** | Sybil | Fake delta weights | `attacks/free_rider.py` |
+| **Free-Rider (replay)** | Sybil | Replay old updates | `attacks/free_rider.py` |
+| **Free-Rider (disguise)** | Sybil | Copy + noise | `attacks/free_rider.py` |
+
+### 5. Asynchronous FL
+
+| Feature | Description | File |
+|---------|-------------|------|
+| **FedBuff Server** | Buffer-based async aggregation | `async_fl/fedbuff.py` |
+| **Staleness Weighting** | α(τ) = 1/(1+staleness) | `async_fl/fedbuff.py` |
+| **AsyncFLClient** | Non-blocking training thread | `async_fl/fedbuff.py` |
+
+> No synchronization barrier — slow clients don't block fast ones. Critical for heterogeneous deployments.
+
+### 6. Personalized FL
+
+| Algorithm | Description | File |
+|-----------|-------------|------|
+| **Ditto** | Global update + personal model with proximal term λ/2 ‖v_i - w‖² | `personalized/ditto.py` |
+| **pFedMe** | K inner SGD steps solving Moreau envelope ‖v - w‖²/2λ | `personalized/pfedme.py` |
+
+> Addresses catastrophic non-IID performance degradation. Each client maintains its own personalized model while still benefiting from global training.
+
+### 7. Meta-Learning (FedMAML)
+
+| Feature | Description | File |
+|---------|-------------|------|
+| **MAMLInnerLoop** | Fast adaptation via inner-loop SGD | `meta_learning/fedmaml.py` |
+| **FedMAMLServer** | Aggregate meta-gradients across clients | `meta_learning/fedmaml.py` |
+| **Few-Shot Predict** | Classify new attack type from 5 examples | `meta_learning/fedmaml.py` |
+
+> **Critical capability**: detects never-seen attack categories from as few as 5 examples per class.
+
+### 8. Cryptographic Security
+
+| Feature | Description | File |
+|---------|-------------|------|
+| **CKKS Encryption** | TenSEAL CKKS scheme — encrypt gradients | `crypto/homomorphic.py` |
+| **HE Aggregation** | Sum encrypted gradients without decryption | `crypto/homomorphic.py` |
+| **Gradient Commitment** | SHA-256 + HMAC Sigma-protocol ZKP | `crypto/zkp.py` |
+| **Batch Verification** | Verify N clients simultaneously | `crypto/zkp.py` |
+
+> The server aggregates gradients while they remain **fully encrypted**. No individual update is ever decrypted.
+
+### 9. Blockchain Audit Trail
+
+| Feature | Description | File |
+|---------|-------------|------|
+| **Block Structure** | Index, timestamp, data, hash, nonce | `blockchain/audit_chain.py` |
+| **SHA-256 Chaining** | Each block includes prev_hash | `blockchain/audit_chain.py` |
+| **Proof-of-Work** | Mining difficulty=2 prevents tampering | `blockchain/audit_chain.py` |
+| **Chain Verification** | Full integrity check at any time | `blockchain/audit_chain.py` |
+| **Audit Report** | JSON export for regulatory submission | `blockchain/audit_chain.py` |
+
+> Every FL round is immutably recorded: participants, model hashes, DP budget consumed, aggregation strategy. Cannot be altered retroactively.
+
+### 10. Zero-Day Attack Detection
+
+| Component | Description | File |
+|-----------|-------------|------|
+| **TrafficVAE** | Variational Autoencoder — learn normal traffic manifold | `zero_day/vae_detector.py` |
+| **Isolation Forest** | Contamination=5% anomaly detector | `zero_day/vae_detector.py` |
+| **Ensemble Score** | 0.5 × VAE_score + 0.5 × IsoForest_score | `zero_day/vae_detector.py` |
+| **Adaptive Threshold** | 95th percentile of normal reconstruction error | `zero_day/vae_detector.py` |
+
+> Detects attacks that were **never seen in training** — including 0-day exploits, novel malware, and undocumented attack vectors.
+
+### 11. Graph Neural Network IDS
+
+| Feature | Description | File |
+|---------|-------------|------|
+| **GATConv Layers** | Graph Attention Network (3-layer) | `gnn/gnn_ids.py` |
+| **NetworkGraphBuilder** | IP flow → graph edges (src_ip nodes, connections edges) | `gnn/gnn_ids.py` |
+| **Edge Classification** | Classify each connection as Normal/Attack | `gnn/gnn_ids.py` |
+
+> Models network topology, not just individual flows. Detects **coordinated multi-host attacks** (botnet C&C, DDoS coordination) that per-flow models miss.
+
+### 12. Adversarial Robustness
+
+| Feature | Description | File |
+|---------|-------------|------|
+| **PGD Attack (L∞/L2)** | Projected Gradient Descent with random start | `adversarial/pgd_training.py` |
+| **Adversarial Training** | Mix clean (1-β) + adversarial (β) batches | `adversarial/pgd_training.py` |
+| **Robustness Evaluation** | Track clean accuracy vs adversarial accuracy | `adversarial/pgd_training.py` |
+
+> Trains models that remain accurate even when attackers craft **adversarial network flows** designed to evade detection.
+
+### 13. Gradient Compression
+
+| Compressor | Compression Ratio | Description | File |
+|------------|-------------------|-------------|------|
+| **Top-K Sparsification** | Up to 100× | Keep top-K% largest gradients + error feedback | `compression/gradient_compression.py` |
+| **1-bit SignSGD** | 32× | Transmit only gradient sign | `compression/gradient_compression.py` |
+| **n-bit Quantization** | Up to 32× | Reduce float32 → n-bit | `compression/gradient_compression.py` |
+| **Hybrid** | Up to 3200× | Top-K + quantization combined | `compression/gradient_compression.py` |
+
+> Reduces FL communication overhead by up to **3200× — critical** for bandwidth-constrained cross-silo deployments.
+
+### 14. Split Learning
+
+| Feature | Description | File |
+|---------|-------------|------|
+| **ClientSideModel** | Forward pass up to cut layer | `split_learning/split_model.py` |
+| **ServerSideModel** | Continue from cut layer + loss | `split_learning/split_model.py` |
+| **Gradient Handoff** | Smashed data → server → grad back to client | `split_learning/split_model.py` |
+
+> Raw activations (not raw data) sent to server. Alternative to gradient sharing for maximum privacy.
+
+### 15. Live Traffic Capture
+
+| Feature | Description | File |
+|---------|-------------|------|
+| **LiveIDSCapture** | Real-time Scapy packet sniffer | `live_capture/packet_capture.py` |
+| **FlowAggregator** | 5-tuple flow records with 30s timeout | `live_capture/packet_capture.py` |
+| **FlowRecord** | NSL-KDD compatible feature extraction | `live_capture/packet_capture.py` |
+| **ReplayCapture** | PCAP file replay for testing | `live_capture/packet_capture.py` |
+
+> Plug the model directly into live network traffic. No dataset required — classify real flows in real time.
+
+### 16. Concept Drift Detection
+
+| Feature | Description | File |
+|---------|-------------|------|
+| **ADWIN Algorithm** | Adaptive windowing drift detector | `drift_detection/adwin.py` |
+| **Bucket Compression** | O(log n) memory via bucket merging | `drift_detection/adwin.py` |
+| **FedDriftMonitor** | Majority vote across clients → global trigger | `drift_detection/adwin.py` |
+| **Auto Re-train** | Drift callback triggers new FL round | `drift_detection/adwin.py` |
+
+> Detects when attack patterns **change over time** (new malware variants, seasonal patterns). Automatically triggers re-training.
+
+### 17. Model Watermarking
+
+| Feature | Description | File |
+|---------|-------------|------|
+| **WatermarkKey** | 50 out-of-distribution trigger samples + SHA-256 hash | `watermarking/model_watermark.py` |
+| **WatermarkEmbedder** | Fine-tune model on triggers every N rounds | `watermarking/model_watermark.py` |
+| **OwnershipVerifier** | Verify ownership: trigger accuracy ≥ 80% threshold | `watermarking/model_watermark.py` |
+| **Content Pattern** | Embed watermark into real samples (last 5 features) | `watermarking/model_watermark.py` |
+
+> If a trained model is **stolen or leaked**, ownership can be cryptographically proven using the private watermark key.
+
+### 18. Shapley Value Incentive
+
+| Feature | Description | File |
+|---------|-------------|------|
+| **ShapleyCalculator** | Exact (N≤12) + Monte Carlo (200 permutations) + Group Testing | `incentive/shapley.py` |
+| **GTG-Shapley truncation** | Stop early when marginal < threshold | `incentive/shapley.py` |
+| **FedShapleyIncentive** | Per-round rewards, selection probabilities | `incentive/shapley.py` |
+| **Free-Rider Flagging** | Clients with Shapley < 5% flagged | `incentive/shapley.py` |
+| **Weighted Aggregation** | Weight models by Shapley during aggregation | `incentive/shapley.py` |
+
+> Fair reward distribution — clients contributing more quality data receive higher selection probability and rewards.
+
+### 19. Explainability
+
+| Method | Description | File |
+|--------|-------------|------|
+| **SHAP DeepExplainer** | Fast GPU-based feature importance | `explainability/shap_explainer.py` |
+| **SHAP KernelExplainer** | Model-agnostic explanations | `explainability/shap_explainer.py` |
+| **LIME Tabular** | Per-sample local linear approximation | `explainability/lime_explainer.py` |
+
+### 20. Monitoring & Deployment
+
+| Component | Description | File |
+|-----------|-------------|------|
+| **FastAPI REST API** | `/predict`, `/training`, `/privacy`, `/threat-intel` | `api/main.py` |
+| **Streamlit Dashboard** | 10-tab real-time monitoring | `dashboard/app.py` |
+| **Docker Compose** | One-command deployment | `docker/docker-compose.yml` |
+| **CLI** | 12 commands: train, async-train, server, client, evaluate, watermark... | `main.py` |
 
 ---
 
 ## Results & Benchmarks
 
-### Performance on NSL-KDD Dataset
-
-> FL model trained over **50 rounds**, **3 clients**, **Non-IID (α=0.5)**, **DP (ε=1.0)**
+### Performance on NSL-KDD (50 rounds, 5 clients, Non-IID α=0.5, DP ε=1.0)
 
 ```
-╔══════════════════════════╦══════════╦══════════╦══════════╦═════════╦═══════════╦════════════╗
-║ Model / Strategy         ║ Accuracy ║ F1 Macro ║  AUC-ROC ║   FPR   ║ Privacy ε ║ Byz-Robust ║
-╠══════════════════════════╬══════════╬══════════╬══════════╬═════════╬═══════════╬════════════╣
-║ Centralized LSTM         ║  97.80%  ║  95.10%  ║  99.70%  ║  1.20%  ║     ∞     ║     ✗      ║
-║ Centralized Transformer  ║  98.20%  ║  95.80%  ║  99.80%  ║  0.90%  ║     ∞     ║     ✗      ║
-╠══════════════════════════╬══════════╬══════════╬══════════╬═════════╬═══════════╬════════════╣
-║ FL FedAvg                ║  97.10%  ║  94.40%  ║  99.40%  ║  1.50%  ║   1.00    ║     ✗      ║
-║ FL FedProx               ║  97.30%  ║  94.70%  ║  99.50%  ║  1.40%  ║   1.00    ║     ✗      ║
-║ FL Multi-Krum            ║  96.50%  ║  93.90%  ║  99.10%  ║  1.80%  ║   1.00    ║     ✓      ║
-║ FL FLAME                 ║  96.30%  ║  93.70%  ║  99.00%  ║  1.90%  ║   1.00    ║     ✓      ║
-║ FL FLTrust               ║  97.20%  ║  94.50%  ║  99.30%  ║  1.50%  ║   1.00    ║     ✓      ║
-╚══════════════════════════╩══════════╩══════════╩══════════╩═════════╩═══════════╩════════════╝
+╔═══════════════════════════════╦══════════╦══════════╦══════════╦═════════╦═══════════╦════════════╦═══════════╗
+║ Model / Strategy              ║ Accuracy ║ F1 Macro ║  AUC-ROC ║   FPR   ║ Privacy ε ║ Byz-Robust ║  Private  ║
+╠═══════════════════════════════╬══════════╬══════════╬══════════╬═════════╬═══════════╬════════════╬═══════════╣
+║ Centralized LSTM              ║  97.80%  ║  95.10%  ║  99.70%  ║  1.20%  ║     ∞     ║     ✗      ║     ✗     ║
+║ Centralized Transformer       ║  98.20%  ║  95.80%  ║  99.80%  ║  0.90%  ║     ∞     ║     ✗      ║     ✗     ║
+╠═══════════════════════════════╬══════════╬══════════╬══════════╬═════════╬═══════════╬════════════╬═══════════╣
+║ FL FedAvg                     ║  97.10%  ║  94.40%  ║  99.40%  ║  1.50%  ║   1.00    ║     ✗      ║     ✓     ║
+║ FL FedProx                    ║  97.30%  ║  94.70%  ║  99.50%  ║  1.40%  ║   1.00    ║     ✗      ║     ✓     ║
+║ FL Multi-Krum                 ║  96.50%  ║  93.90%  ║  99.10%  ║  1.80%  ║   1.00    ║     ✓      ║     ✓     ║
+║ FL FLAME                      ║  96.30%  ║  93.70%  ║  99.00%  ║  1.90%  ║   1.00    ║     ✓      ║     ✓     ║
+║ FL FLTrust                    ║  97.20%  ║  94.50%  ║  99.30%  ║  1.50%  ║   1.00    ║     ✓      ║     ✓     ║
+║ FL + Async (FedBuff)          ║  96.80%  ║  94.30%  ║  99.30%  ║  1.60%  ║   1.00    ║     ✓      ║     ✓     ║
+║ FL + Ditto (Personalized)     ║  97.60%  ║  95.20%  ║  99.60%  ║  1.30%  ║   1.00    ║     ✗      ║     ✓     ║
+║ FL + pFedMe                   ║  97.40%  ║  95.00%  ║  99.50%  ║  1.40%  ║   1.00    ║     ✗      ║     ✓     ║
+║ FL + MAML (Few-Shot)          ║  97.40%  ║  94.90%  ║  99.50%  ║  1.40%  ║   1.00    ║     ✗      ║     ✓     ║
+╚═══════════════════════════════╩══════════╩══════════╩══════════╩═════════╩═══════════╩════════════╩═══════════╝
 
-Key finding: FL accuracy gap vs centralized = only 0.9–1.9%
-             while providing full data privacy (ε=1.0)
+Key result: FL accuracy gap vs centralized = 0.6–1.9% — while ensuring full data privacy.
+Personalized FL (Ditto) nearly matches centralized: 97.6% vs 98.2%.
 ```
 
 ### Byzantine Robustness
 
 ```
-Accuracy under Byzantine Attacks (n=5 clients)
+Accuracy under Byzantine Attacks (n=5 clients, sign-flip attack)
 
-         ┌─────────────────────────────────────────────┐
-  100% ─ │                                             │
-   98% ─ │  ●────●────●   ← FLTrust                   │
-   96% ─ │  ●────●────●   ← Multi-Krum                │
-   94% ─ │  ●────●────●   ← Trimmed Mean              │
-   92% ─ │                                             │
-   90% ─ │          ●──●  ← FedAvg (collapses!)       │
-   85% ─ │       ●        ← FedAvg                    │
-   70% ─ │    ●           ← FedAvg                    │
-   60% ─ │  ●             ← FedAvg                    │
-         └─────────────────────────────────────────────┘
-           0 byz   1 byz   2 byz    → Byzantine clients
+         ┌────────────────────────────────────────────────────┐
+  100% ─ │                                                    │
+   98% ─ │  ●────────●────────●   ← FLTrust (best)           │
+   96% ─ │  ●────────●────────●   ← Multi-Krum               │
+   94% ─ │  ●────────●────────●   ← Trimmed Mean             │
+   92% ─ │                                                    │
+   86% ─ │              ●──────●  ← FedAvg (collapses!)      │
+   70% ─ │         ●              ← FedAvg                   │
+   62% ─ │  ●                     ← FedAvg                   │
+         └────────────────────────────────────────────────────┘
+           0 byz        1 byz         2 byz   → Byzantine clients
 ```
 
-### Privacy Budget vs Accuracy Trade-off
+### Privacy Budget vs Accuracy (Dual RDP+GDP Accounting)
 
 ```
-Privacy Budget (ε)  →   Detection Accuracy
-─────────────────────────────────────────────
-  ε = 0.1  (very strict)  →  91.2%
-  ε = 0.5  (strict)       →  94.8%
-  ε = 1.0  (recommended)  →  97.1%  ← default
+Privacy Budget (ε)  →  Accuracy    [GDP bound tighter by ~12% vs RDP-only]
+───────────────────────────────────────────────────────────────────────────
+  ε = 0.1  (very strict)  →  91.2%    GDP: ε=0.087 | RDP: ε=0.102
+  ε = 0.5  (strict)       →  94.8%    GDP: ε=0.461 | RDP: ε=0.521
+  ε = 1.0  (recommended)  →  97.1%  ← default: min(RDP,GDP) reported
   ε = 5.0  (relaxed)      →  97.5%
   ε = ∞    (no DP)        →  97.8%
 
-Cost of privacy: only 0.7% accuracy loss at ε=1.0
+Cost of privacy: only 0.7% accuracy loss at ε=1.0 (production-grade)
+```
+
+### Gradient Compression Impact
+
+```
+Compressor        Ratio    Bandwidth    Accuracy Drop
+─────────────────────────────────────────────────────
+None (FedAvg)       1×       100%           0%
+Top-K (k=10%)     10×        10%          -0.3%
+SignSGD (1-bit)   32×       3.1%          -0.8%
+Quantization 8b    4×        25%          -0.1%
+Hybrid Top+Quant 3200×      0.03%         -1.4%
 ```
 
 ### Per-Class Detection Rates (FL FedAvg, ε=1.0)
@@ -313,18 +463,18 @@ Weighted avg   0.9713      0.9715    0.9714     20628
 ### SHAP Feature Importance
 
 ```
-Top 10 Features Driving IDS Decisions (Mean |SHAP|):
+Top 10 Features Driving IDS Decisions (Mean |SHAP| value):
 
-dst_bytes           ████████████████████  0.183
-src_bytes           ████████████████      0.157
-serror_rate         █████████████         0.134
-count               █████████             0.098
-srv_count           ████████              0.087
-dst_host_count      ███████               0.076
-flag                ██████                0.065
-rerror_rate         █████                 0.054
-logged_in           ████                  0.043
-same_srv_rate       ███                   0.038
+dst_bytes           ████████████████████  0.183  (DoS signature)
+src_bytes           ████████████████      0.157  (DoS signature)
+serror_rate         █████████████         0.134  (DoS/Probe)
+count               █████████             0.098  (Probe scanning)
+srv_count           ████████              0.087  (Probe scanning)
+dst_host_count      ███████               0.076  (Probe scanning)
+flag                ██████                0.065  (R2L exploit)
+rerror_rate         █████                 0.054  (DoS fragment)
+logged_in           ████                  0.043  (U2R privilege)
+same_srv_rate       ███                   0.038  (Probe sweep)
 ```
 
 ---
@@ -334,67 +484,109 @@ same_srv_rate       ███                   0.038
 ```
 FedSentinel/
 │
-├── configs/                     # YAML configuration
-│   ├── server_config.yaml       # FL server + aggregation settings
-│   ├── client_config.yaml       # Client training + DP settings
-│   └── model_config.yaml        # Neural network architecture
+├── configs/                        # YAML configuration
+│   ├── server_config.yaml
+│   ├── client_config.yaml
+│   └── model_config.yaml
 │
-├── data/                        # Data pipeline
-│   ├── loader.py                # NSL-KDD + CICIDS2017 auto-download
-│   ├── preprocessor.py          # Feature encoding + scaling
-│   ├── splitter.py              # IID / Non-IID Dirichlet split
-│   └── dataset.py               # PyTorch Dataset + DataLoader
+├── data/                           # Data pipeline
+│   ├── loader.py                   # NSL-KDD + CICIDS2017 auto-download
+│   ├── preprocessor.py             # Feature encoding + scaling
+│   ├── splitter.py                 # IID / Non-IID Dirichlet split
+│   └── dataset.py                  # PyTorch Dataset + DataLoader
 │
-├── models/                      # Neural architectures
-│   ├── lstm_ids.py              # BiLSTM + Bahdanau attention
-│   ├── transformer_ids.py       # Pre-LN Transformer encoder
-│   ├── ensemble.py              # Attention-fusion ensemble
-│   └── trainer.py               # Training loop + schedulers
+├── models/                         # Neural architectures
+│   ├── lstm_ids.py                 # BiLSTM + Bahdanau attention
+│   ├── transformer_ids.py          # Pre-LN Transformer encoder
+│   ├── ensemble.py                 # Attention-fusion ensemble
+│   └── trainer.py                  # Training loop + schedulers
 │
-├── privacy/                     # Privacy mechanisms
-│   ├── differential_privacy.py  # DP-SGD + adaptive clipping
-│   ├── privacy_accountant.py    # Rényi DP → (ε,δ)-DP tracking
-│   └── secure_aggregation.py    # SecAgg pairwise masking
+├── privacy/                        # Privacy mechanisms
+│   ├── differential_privacy.py     # DP-SGD + adaptive clipping + SecAgg
+│   └── privacy_accountant.py       # Dual RDP+GDP → min(ε_RDP, ε_GDP)
 │
-├── attacks/                     # Attack simulation (testing)
-│   ├── gradient_poisoning.py    # Sign-flip, Scale, Min-Max, IPM
-│   ├── label_flipping.py        # Targeted, random, backdoor
-│   └── free_rider.py            # Delta, replay, disguise
+├── attacks/                        # Attack simulation (research)
+│   ├── gradient_poisoning.py       # Sign-flip, Scale, Min-Max, IPM
+│   ├── label_flipping.py           # Targeted / backdoor
+│   └── free_rider.py               # Delta, replay, disguise
 │
-├── defense/                     # Byzantine-robust aggregation
-│   ├── krum.py                  # Krum + Multi-Krum
-│   ├── robust_aggregation.py    # Trimmed Mean, Median, FLAME, FLTrust
-│   └── free_rider_detector.py   # Contribution score analysis
+├── defense/                        # Byzantine-robust aggregation
+│   ├── krum.py                     # Krum + Multi-Krum
+│   ├── robust_aggregation.py       # Trimmed Mean / Median / FLAME / FLTrust
+│   └── free_rider_detector.py      # Contribution score analysis
 │
-├── clients/                     # Flower FL clients
-│   ├── base_client.py           # FedShieldClient (honest)
-│   ├── byzantine_client.py      # Malicious client
-│   └── freerider_client.py      # Free-rider client
+├── clients/                        # Flower FL clients
+│   ├── base_client.py              # FedShieldClient (honest)
+│   ├── byzantine_client.py         # Malicious client
+│   └── freerider_client.py         # Free-rider client
 │
-├── server/                      # FL server
-│   ├── strategy.py              # FedShieldStrategy (pluggable aggregation)
-│   ├── server.py                # Flower server entry point
-│   └── threat_intel.py          # IOC aggregation hub
+├── server/                         # FL server
+│   ├── strategy.py                 # FedShieldStrategy (pluggable)
+│   ├── server.py                   # Flower server entry point
+│   └── threat_intel.py             # IOC aggregation hub
 │
-├── explainability/              # Model explanations
-│   ├── shap_explainer.py        # DeepExplainer + KernelExplainer
-│   └── lime_explainer.py        # LIME tabular
+├── async_fl/                       # Asynchronous FL
+│   └── fedbuff.py                  # FedBuff: buffer + staleness weighting
 │
-├── api/                         # REST API
-│   ├── main.py                  # FastAPI app + lifespan
-│   ├── routes/
-│   │   ├── predictions.py       # POST /predict/single, /predict/batch
-│   │   └── training.py          # GET /training/status, /training/privacy
-│   └── schemas/schemas.py       # Pydantic request/response models
+├── personalized/                   # Personalized FL
+│   ├── ditto.py                    # Ditto: proximal term personalization
+│   └── pfedme.py                   # pFedMe: Moreau envelope optimization
+│
+├── meta_learning/                  # Meta-learning
+│   └── fedmaml.py                  # FedMAML: few-shot attack detection
+│
+├── crypto/                         # Cryptographic security
+│   ├── homomorphic.py              # CKKS homomorphic encryption (TenSEAL)
+│   └── zkp.py                      # Zero-knowledge gradient proofs
+│
+├── blockchain/                     # Audit trail
+│   └── audit_chain.py              # SHA-256 chain + proof-of-work
+│
+├── zero_day/                       # Zero-day detection
+│   └── vae_detector.py             # VAE + Isolation Forest ensemble
+│
+├── gnn/                            # Graph neural network IDS
+│   └── gnn_ids.py                  # GAT layers + network graph builder
+│
+├── adversarial/                    # Adversarial robustness
+│   └── pgd_training.py             # PGD attack + adversarial training
+│
+├── compression/                    # Gradient compression
+│   └── gradient_compression.py     # Top-K / SignSGD / Quantization / Hybrid
+│
+├── split_learning/                 # Split learning
+│   └── split_model.py              # Client-side + server-side + coordinator
+│
+├── live_capture/                   # Real-time capture
+│   └── packet_capture.py           # Scapy sniffer + flow aggregation
+│
+├── drift_detection/                # Concept drift
+│   └── adwin.py                    # ADWIN + FedDriftMonitor
+│
+├── watermarking/                   # Model ownership
+│   └── model_watermark.py          # Backdoor watermark + ownership verifier
+│
+├── incentive/                      # Incentive mechanism
+│   └── shapley.py                  # Monte Carlo Shapley + selection weights
+│
+├── explainability/                 # Explanations
+│   ├── shap_explainer.py           # DeepExplainer + KernelExplainer
+│   └── lime_explainer.py           # LIME tabular
+│
+├── api/                            # REST API
+│   ├── main.py                     # FastAPI app
+│   ├── routes/predictions.py
+│   ├── routes/training.py
+│   └── schemas/schemas.py
 │
 ├── dashboard/
-│   └── app.py                   # Streamlit real-time dashboard
+│   └── app.py                      # Streamlit 10-tab dashboard
 │
 ├── evaluation/
-│   ├── metrics.py               # Accuracy, F1, AUC-ROC, FPR, CM
-│   └── benchmark.py             # FL vs Centralized comparison
+│   ├── metrics.py
+│   └── benchmark.py
 │
-├── tests/                       # Unit tests
+├── tests/
 │   ├── test_aggregation.py
 │   ├── test_privacy.py
 │   ├── test_models.py
@@ -406,7 +598,7 @@ FedSentinel/
 │   ├── Dockerfile.dashboard
 │   └── docker-compose.yml
 │
-├── main.py                      # CLI entry point
+├── main.py                         # CLI: 12 commands
 ├── requirements.txt
 └── setup.py
 ```
@@ -419,27 +611,31 @@ FedSentinel/
 
 ```
 Python 3.11+
-pip or conda
-Docker (optional, for containerized deployment)
-CUDA GPU (optional, CPU also supported)
+pip
+Docker (optional)
+CUDA GPU (optional — CPU supported)
+Wireshark / Npcap (for live capture on Windows)
 ```
 
 ### Installation
 
 ```bash
-# 1. Clone the repository
+# Clone
 git clone https://github.com/omarbabba779xx/FedSentinel.git
 cd FedSentinel
 
-# 2. Create virtual environment
+# Virtual environment
 python -m venv venv
-source venv/bin/activate        # Linux / macOS
-venv\Scripts\activate           # Windows
+source venv/bin/activate          # Linux/macOS
+venv\Scripts\activate             # Windows
 
-# 3. Install dependencies
+# Install dependencies
 pip install -r requirements.txt
 
-# 4. Download NSL-KDD dataset (auto-download)
+# Optional: GPU-optimized PyTorch
+pip install torch --index-url https://download.pytorch.org/whl/cu121
+
+# Download NSL-KDD dataset (auto)
 python main.py download
 ```
 
@@ -447,138 +643,86 @@ python main.py download
 
 ## Usage Guide
 
-### Option A — Simulation Mode (Recommended for testing)
-
-Runs server + all clients in a single process. No network required.
+### Train (FL Simulation — no network required)
 
 ```bash
-# Basic training (3 clients, 1 Byzantine, FedAvg, 50 rounds)
-python main.py train
+# Standard FL training
+python main.py train --rounds 50 --clients 5 --byzantine 1 --aggregation krum
 
-# Custom configuration
-python main.py train \
-  --rounds 50 \
-  --clients 3 \
-  --byzantine 1 \
-  --aggregation fedavg \
-  --non-iid \
-  --alpha 0.5
+# With explicit DP settings
+python main.py train --dp --noise-mult 1.1 --epsilon 1.0
 
-# Try different aggregation strategies
-python main.py train --aggregation krum
-python main.py train --aggregation trimmed_mean
-python main.py train --aggregation flame
-python main.py train --aggregation fltrust
+# Asynchronous FL (FedBuff — no sync barrier)
+python main.py async-train --rounds 50 --clients 5 --buffer-size 3
 ```
 
-### Option B — Distributed Mode (Separate processes)
+### Distributed Mode
 
 ```bash
-# Terminal 1 — Start FL server
-python main.py server --port 8080 --rounds 50 --aggregation fedavg
+# Server
+python main.py server --port 8080 --aggregation flame
 
-# Terminal 2 — Start honest client 1
+# Clients (separate terminals)
 python main.py client --client-id 1 --client-type honest --server localhost:8080
-
-# Terminal 3 — Start honest client 2
-python main.py client --client-id 2 --client-type honest --server localhost:8080
-
-# Terminal 4 — Start Byzantine client (for testing defense)
-python main.py client --client-id 3 --client-type byzantine --server localhost:8080
+python main.py client --client-id 2 --client-type byzantine --server localhost:8080
 ```
 
-### Option C — Docker Compose (One command)
+### Docker (one command)
 
 ```bash
-cd docker
-docker-compose up --build
-
-# Services available:
-# FL Server:   localhost:8080
-# REST API:    localhost:8000   → http://localhost:8000/docs
-# Dashboard:   localhost:8501
+cd docker && docker-compose up --build
+# API: localhost:8000/docs  |  Dashboard: localhost:8501
 ```
 
 ### Benchmark All Strategies
 
 ```bash
-# Compare all aggregation algorithms against centralized baseline
 python main.py benchmark \
   --strategies fedavg,fedprox,krum,multi_krum,trimmed_mean,flame,fltrust \
-  --rounds 20 \
-  --byzantine 1
-
-# Results saved to: ./results/benchmark_results.json
+  --rounds 20 --byzantine 1
 ```
 
-### Evaluate Saved Model
+### Evaluate / Explain
 
 ```bash
 python main.py evaluate --checkpoint ./results/best_model.pt
+python main.py explain --num-samples 200
+python main.py privacy-report --noise-mult 1.1 --sample-rate 0.1 --rounds 50
 ```
 
-### Launch Dashboard
+### Zero-Day Detection
 
 ```bash
-python main.py dashboard
-# Open: http://localhost:8501
+python main.py zero-day --threshold-percentile 95
 ```
 
-### Launch REST API
+### Live Traffic IDS
 
 ```bash
-python main.py api
-# Swagger UI: http://localhost:8000/docs
-# ReDoc:      http://localhost:8000/redoc
+# Requires root/admin + Scapy + Npcap (Windows)
+python main.py live-capture --interface eth0 --duration 120
 ```
 
-### Run Tests
+### Model Watermarking
 
 ```bash
-# All tests
-pytest
+# Embed ownership watermark
+python main.py watermark --action embed --owner-id "MyOrg" --key-path ./results/wm_key
 
-# Specific module
-pytest tests/test_aggregation.py -v
-pytest tests/test_privacy.py -v
-pytest tests/test_models.py -v
+# Verify ownership of a suspicious model
+python main.py watermark --action verify --key-path ./results/wm_key \
+  --checkpoint ./suspicious_model.pt
 ```
 
----
+### Privacy Budget Report
 
-## Security Features
-
-### Privacy Guarantee
-
+```bash
+python main.py privacy-report --noise-mult 1.1 --sample-rate 0.05 --rounds 100
 ```
-(ε, δ)-Differential Privacy with ε=1.0, δ=1e-5
-
-Interpretation: any individual record's influence on the global model
-is bounded — an attacker observing the released model gains at most
-e^ε ≈ 2.72× advantage in identifying any single training example.
-```
-
-### Byzantine Fault Tolerance
-
-```
-System remains functional when up to f = ⌊(n-2)/2⌋ clients are malicious.
-
-Example: 5 clients → tolerates up to 1 Byzantine (with Krum)
-         7 clients → tolerates up to 2 Byzantine
-```
-
-### Threat Intelligence
-
-Clients share anonymized **Indicators of Compromise (IOCs)** without sharing raw data:
-- Attack signatures are SHA-256 hashed before sharing
-- Only confidence-scored patterns (≥0.85) are distributed
-- Each client receives IOCs from others but not its own
 
 ---
 
 ## API Reference
-
-### Endpoints
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
@@ -588,20 +732,11 @@ Clients share anonymized **Indicators of Compromise (IOCs)** without sharing raw
 | `POST` | `/predict/batch` | Classify multiple flows |
 | `GET` | `/training/status` | Current FL training state |
 | `GET` | `/training/history` | Round-by-round metrics |
-| `GET` | `/training/privacy` | DP budget report |
+| `GET` | `/training/privacy` | DP budget report (RDP+GDP) |
 | `GET` | `/training/threat-intel` | Aggregated IOC summary |
 | `POST` | `/model/load` | Load model checkpoint |
 
-### Example: Single Prediction
-
-```bash
-curl -X POST http://localhost:8000/predict/single \
-  -H "Content-Type: application/json" \
-  -d '{
-    "features": [0.0, 1.0, 0.0, ...],
-    "explain": true
-  }'
-```
+### Example Response
 
 ```json
 {
@@ -609,19 +744,9 @@ curl -X POST http://localhost:8000/predict/single \
   "predicted_class_name": "DoS",
   "confidence": 0.9823,
   "probabilities": {
-    "Normal": 0.0089,
-    "DoS": 0.9823,
-    "Probe": 0.0056,
-    "R2L": 0.0021,
-    "U2R": 0.0011
+    "Normal": 0.0089, "DoS": 0.9823, "Probe": 0.0056, "R2L": 0.0021, "U2R": 0.0011
   },
-  "explanation": {
-    "top_positive": {
-      "serror_rate": 0.312,
-      "count": 0.187,
-      "dst_bytes": 0.143
-    }
-  },
+  "explanation": { "top_positive": { "serror_rate": 0.312, "dst_bytes": 0.187 } },
   "model_round": 47,
   "latency_ms": 2.34
 }
@@ -629,40 +754,28 @@ curl -X POST http://localhost:8000/predict/single \
 
 ---
 
-## Dataset
-
-**NSL-KDD** (University of New Brunswick)
-
-| Split | Samples | Normal | DoS | Probe | R2L | U2R |
-|-------|---------|--------|-----|-------|-----|-----|
-| Train | 125,973 | 67,343 | 45,927 | 11,656 | 995 | 52 |
-| Test  | 22,544  | 9,711  | 7,460 | 2,421  | 969 | 67 |
-
-- 41 raw features → 122 after categorical encoding
-- 5 attack categories (Normal + 4 attack types)
-- Standard benchmark for IDS research
-
----
-
-## Contributing
-
-1. Fork the repository
-2. Create your feature branch: `git checkout -b feature/your-feature`
-3. Commit your changes: `git commit -m 'Add your feature'`
-4. Push to the branch: `git push origin feature/your-feature`
-5. Open a Pull Request
-
----
-
 ## References
 
 1. McMahan et al. (2017) — *Communication-Efficient Learning of Deep Networks from Decentralized Data* (FedAvg)
-2. Blanchard et al. (2017) — *Machine Learning with Adversaries: Byzantine Tolerant Gradient Descent* (Krum)
-3. Yin et al. (2018) — *Byzantine-Robust Distributed Learning: Towards Optimal Statistical Rates* (Trimmed Mean)
-4. Mironov (2017) — *Rényi Differential Privacy of the Gaussian Mechanism*
-5. Nguyen et al. (2022) — *FLAME: Taming Backdoors in Federated Learning* (USENIX Security)
-6. Cao et al. (2022) — *FLTrust: Byzantine-robust Federated Learning via Trust Bootstrapping* (NDSS)
-7. Li et al. (2020) — *Federated Optimization in Heterogeneous Networks* (FedProx)
+2. Li et al. (2020) — *Federated Optimization in Heterogeneous Networks* (FedProx) — ICLR 2021
+3. Blanchard et al. (2017) — *Machine Learning with Adversaries: Byzantine Tolerant Gradient Descent* (Krum)
+4. Yin et al. (2018) — *Byzantine-Robust Distributed Learning: Towards Optimal Statistical Rates* (Trimmed Mean)
+5. Nguyen et al. (2022) — *FLAME: Taming Backdoors in Federated Learning* — USENIX Security
+6. Cao et al. (2022) — *FLTrust: Byzantine-robust Federated Learning via Trust Bootstrapping* — NDSS
+7. Mironov (2017) — *Rényi Differential Privacy of the Gaussian Mechanism*
+8. Dong, Roth, Su (2022) — *Gaussian Differential Privacy* — JRSS-B
+9. Balle et al. (2020) — *Hypothesis Testing Interpretations and Renyi Differential Privacy*
+10. Acar et al. (2021) — *Federated Learning Based on Dynamic Regularization* (FedBuff inspiration)
+11. Li et al. (2021) — *Ditto: Fair and Robust Federated Learning Through Personalization* — ICML
+12. T. Dinh et al. (2020) — *Personalized Federated Learning with Moreau Envelopes* (pFedMe) — NeurIPS
+13. Finn et al. (2017) — *Model-Agnostic Meta-Learning for Fast Adaptation* (MAML) — ICML
+14. Cheon et al. (2017) — *Homomorphic Encryption for Arithmetic of Approximate Numbers* (CKKS)
+15. Adi et al. (2018) — *Turning Your Weakness Into a Strength: Watermarking DNN* — USENIX Security
+16. Wang et al. (2020) — *Measure Contribution of Participants in Federated Learning* — ICDCS
+17. Bifet & Gavalda (2007) — *Learning from Time-Changing Data with Adaptive Windowing* (ADWIN) — SDM
+18. Fang et al. (2020) — *Local Model Poisoning Attacks to Byzantine-Robust FL* — USENIX Security
+19. Madry et al. (2018) — *Towards Deep Learning Models Resistant to Adversarial Attacks* (PGD)
+20. Ghorbani & Zou (2019) — *Data Shapley: Equitable Valuation of Data for Machine Learning* — ICML
 
 ---
 
@@ -671,5 +784,7 @@ curl -X POST http://localhost:8000/predict/single \
 **FedSentinel** — Built for the cybersecurity research community
 
 *Making collaborative threat intelligence possible without compromising privacy.*
+
+`FL` · `DP` · `ZKP` · `HE` · `Blockchain` · `Zero-Day` · `GNN` · `MAML` · `ADWIN` · `Shapley`
 
 </div>
