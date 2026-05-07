@@ -1,0 +1,36 @@
+input:
+  num_features: 122            # NSL-KDD feature count after encoding
+  num_classes: 5               # normal + 4 attack categories
+
+lstm:
+  input_size: 122
+  hidden_size: 256
+  num_layers: 3
+  bidirectional: true
+  dropout: 0.3
+  output_size: 5
+
+transformer:
+  d_model: 128
+  nhead: 8
+  num_encoder_layers: 4
+  dim_feedforward: 512
+  dropout: 0.1
+  max_seq_len: 1
+  output_size: 5
+
+ensemble:
+  models: ["lstm", "transformer"]
+  fusion: "weighted_avg"       # weighted_avg | attention | voting
+  weights: [0.4, 0.6]
+
+training:
+  loss: "cross_entropy"
+  class_weights: true          # handle imbalanced classes
+  label_smoothing: 0.1
+  scheduler: "cosine"          # cosine | step | plateau
+  warmup_epochs: 2
+
+evaluation:
+  metrics: ["accuracy", "f1_macro", "f1_weighted", "auc_roc", "precision", "recall", "confusion_matrix"]
+  threshold: 0.5

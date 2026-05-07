@@ -1,0 +1,32 @@
+server:
+  host: "0.0.0.0"
+  port: 8080
+  num_rounds: 50
+  min_fit_clients: 2
+  min_evaluate_clients: 2
+  min_available_clients: 2
+  fraction_fit: 1.0
+  fraction_evaluate: 1.0
+
+aggregation:
+  strategy: "fedavg"           # fedavg | fedprox | krum | trimmed_mean | flame | fltrust
+  fedprox_mu: 0.01
+  krum_num_byzantine: 1        # expected byzantine clients
+  trimmed_mean_beta: 0.1       # fraction to trim each side
+  flame_noise_sigma: 0.001
+
+byzantine_detection:
+  enabled: true
+  cosine_threshold: 0.8
+  gradient_norm_threshold: 10.0
+  history_window: 5
+
+threat_intel:
+  enabled: true
+  sharing_interval: 5          # share every N rounds
+  min_confidence: 0.85
+
+logging:
+  level: "INFO"
+  save_metrics: true
+  metrics_path: "./results/server_metrics.json"

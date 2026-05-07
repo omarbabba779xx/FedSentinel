@@ -1,0 +1,119 @@
+version: "3.9"
+
+networks:
+  fedshield:
+    driver: bridge
+
+volumes:
+  results:
+  logs:
+
+services:
+  # ─── FL Server ─────────────────────────────────────────────
+  server:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.server
+    container_name: fedshield-server
+    networks:
+      - fedshield
+    ports:
+      - "8080:8080"
+    volumes:
+      - results:/app/results
+      - logs:/app/logs
+    environment:
+      - AGGREGATION_STRATEGY=fedavg
+      - NUM_ROUNDS=50
+      - MIN_CLIENTS=3
+    healthcheck:
+      test: ["CMD", "python", "-c", "import socket; s=socket.socket(); s.connect(('localhost', 8080)); s.close()"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  # ─── FL Clients ────────────────────────────────────────────
+  client-1:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.client
+    container_name: fedshield-client-1
+    networks:
+      - fedshield
+    volumes:
+      - logs:/app/logs
+    environment:
+      - CLIENT_ID=1
+      - CLIENT_TYPE=honest
+      - FL_SERVER=server:8080
+    depends_on:
+      server:
+        condition: service_healthy
+
+  client-2:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.client
+    container_name: fedshield-client-2
+    networks:
+      - fedshield
+    volumes:
+      - logs:/app/logs
+    environment:
+      - CLIENT_ID=2
+      - CLIENT_TYPE=honest
+      - FL_SERVER=server:8080
+    depends_on:
+      server:
+        condition: service_healthy
+
+  client-3:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.client
+    container_name: fedshield-client-3
+    networks:
+      - fedshield
+    volumes:
+      - logs:/app/logs
+    environment:
+      - CLIENT_ID=3
+      - CLIENT_TYPE=byzantine
+      - FL_SERVER=server:8080
+    depends_on:
+      server:
+        condition: service_healthy
+
+  # ─── REST API ──────────────────────────────────────────────
+  api:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.server
+    container_name: fedshield-api
+    networks:
+      - fedshield
+    ports:
+      - "8000:8000"
+    volumes:
+      - results:/app/results
+    environment:
+      - API_MODE=true
+    command: ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+    depends_on:
+      - server
+
+  # ─── Dashboard ─────────────────────────────────────────────
+  dashboard:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.dashboard
+    container_name: fedshield-dashboard
+    networks:
+      - fedshield
+    ports:
+      - "8501:8501"
+    volumes:
+      - results:/app/results
+    depends_on:
+      - server
