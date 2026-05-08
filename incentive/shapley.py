@@ -2,7 +2,7 @@
 Shapley Value-Based Incentive Mechanism for Federated Learning.
 Fairly rewards clients based on their marginal contribution to model performance.
 
-Shapley value: φ_i = Σ_{S ⊆ N\{i}} [|S|!(|N|-|S|-1)!/|N|!] * [v(S∪{i}) - v(S)]
+Shapley value: phi_i = sum_{S subset N\\{i}} [|S|!(|N|-|S|-1)!/|N|!] * [v(S union {i}) - v(S)]
 
 Approximations used (exact is 2^N):
   - Monte Carlo: permutation sampling (O(T*N))

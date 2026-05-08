@@ -23,7 +23,7 @@ import ssl
 import subprocess
 import tempfile
 from pathlib import Path
-from typing import Optional, Tuple
+from typing import Dict, Optional, Tuple
 from utils.logger import get_logger
 
 logger = get_logger("mTLS")

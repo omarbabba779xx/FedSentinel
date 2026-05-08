@@ -106,7 +106,7 @@ def train(rounds, clients, byzantine, aggregation, non_iid, alpha, dataset,
     state["__input_size__"] = X_train.shape[1]
     state["__num_classes__"] = 5
     torch.save(state, "./results/best_model.pt")
-    console.print(f"\n[bold green]Done![/bold green] Results → ./results/")
+    console.print("\n[bold green]Done![/bold green] Results → ./results/")
 
 
 @cli.command()
@@ -499,7 +499,7 @@ def unlearn(client_id, checkpoint, dataset, method, reason):
         reason=reason,
     )
 
-    console.print(f"[bold green]Unlearning complete![/bold green]")
+    console.print("[bold green]Unlearning complete![/bold green]")
     console.print(f"Certificate: {event['certificate'][:32]}...")
     console.print(f"Forget accuracy: {event['report']['final_forget_accuracy']:.3f}")
     console.print(f"Unlearning successful: {event['report']['unlearning_successful']}")
@@ -572,7 +572,7 @@ def dual_benchmark(rounds, byzantine, strategies):
         num_byzantine=byzantine,
         strategies=strategies.split(","),
     )
-    console.print(f"[green]Dual benchmark complete! Results → ./results/dual_dataset_benchmark.json[/green]")
+    console.print("[green]Dual benchmark complete! Results → ./results/dual_dataset_benchmark.json[/green]")
 
 
 # ─── Federated Eval ────────────────────────────────────────────────────────
