@@ -1,13 +1,14 @@
 """
 Benchmark suite: compare FL aggregation strategies against centralized baseline.
-Generates comprehensive comparison table and plots.
+Supports NSL-KDD and CICIDS2017 datasets.
+Generates comprehensive comparison table and saves results.
 """
 
 import numpy as np
 import torch
 import json
 from pathlib import Path
-from typing import List, Dict
+from typing import List, Dict, Optional
 from collections import OrderedDict
 
 from models import build_model, IDSTrainer, build_optimizer, build_scheduler
@@ -18,6 +19,68 @@ from utils.logger import get_logger
 from utils.helpers import get_device, save_json, set_seed
 
 logger = get_logger("Benchmark")
+
+
+def run_dual_dataset_benchmark(
+    num_rounds: int = 10,
+    num_byzantine: int = 1,
+    strategies: Optional[List[str]] = None,
+    seed: int = 42,
+) -> Dict:
+    """
+    Run full benchmark on BOTH NSL-KDD and CICIDS2017.
+    Demonstrates cross-dataset generalization.
+    Returns combined results dict.
+    """
+    from data import load_dataset, NSLKDDPreprocessor
+
+    if strategies is None:
+        strategies = ["fedavg", "krum", "trimmed_mean", "flame"]
+
+    all_results = {}
+
+    for dataset_name in ["nsl_kdd", "cicids2017"]:
+        logger.info(f"[DualBenchmark] Running on dataset: {dataset_name}")
+        try:
+            df_train, df_test = load_dataset(dataset_name)
+            preprocessor = NSLKDDPreprocessor()
+            X_train, y_train = preprocessor.fit_transform(df_train)
+            X_test, y_test = preprocessor.transform(df_test)
+
+            num_classes = len(np.unique(y_train))
+            bench = FLBenchmark(X_train, y_train, X_test, y_test,
+                                num_classes=num_classes, seed=seed)
+            results = bench.run(
+                strategies=strategies,
+                num_rounds=num_rounds,
+                num_byzantine=num_byzantine,
+            )
+            all_results[dataset_name] = results
+        except Exception as e:
+            logger.warning(f"[DualBenchmark] {dataset_name} failed: {e}")
+            all_results[dataset_name] = {"error": str(e)}
+
+    save_json(all_results, "./results/dual_dataset_benchmark.json")
+    _print_dual_comparison(all_results)
+    return all_results
+
+
+def _print_dual_comparison(results: Dict):
+    """Print side-by-side comparison across datasets."""
+    print("\n" + "=" * 90)
+    print(f"{'Dataset':<15} {'Strategy':<20} {'Accuracy':>10} {'F1 Macro':>10} {'AUC-ROC':>10}")
+    print("=" * 90)
+    for dataset, strat_results in results.items():
+        if "error" in strat_results:
+            print(f"{dataset:<15} {'ERROR: ' + strat_results['error']}")
+            continue
+        for strategy, m in strat_results.items():
+            if isinstance(m, dict) and "accuracy" in m:
+                print(f"{dataset:<15} {strategy:<20} "
+                      f"{m.get('accuracy', 0):>10.4f} "
+                      f"{m.get('f1_macro', 0):>10.4f} "
+                      f"{m.get('auc_roc', 0):>10.4f}")
+    print("=" * 90 + "\n")
 
 
 class FLBenchmark:

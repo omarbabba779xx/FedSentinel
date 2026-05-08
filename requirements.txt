@@ -69,5 +69,25 @@ scipy>=1.12.0   # erfc, norm.cdf — already listed above
 # ─── Zero-day / anomaly ─────────────────────────────────────
 # VAE + IsolationForest via torch + sklearn — already listed above
 
+# ─── Membership Inference (shadow model attack) ─────────────
+# Uses sklearn LogisticRegression — already listed above
+
+# ─── Federated Unlearning ────────────────────────────────────
+# Uses torch + scipy — already listed above
+
+# ─── mTLS / gRPC ─────────────────────────────────────────────
+grpcio>=1.63.0
+grpcio-tools>=1.63.0
+cryptography>=42.0.0   # For cert generation fallback
+
+# ─── Split Learning (Flower integration) ─────────────────────
+# Uses flwr already listed above
+
+# ─── Model Inversion Defense ────────────────────────────────
+# Uses torch forward hooks — already listed above
+
+# ─── Federated Evaluation ───────────────────────────────────
+# Uses sklearn + torch — already listed above
+
 # ─── Per-sample DP-SGD (optional) ───────────────────────────
 # opacus>=1.4.0

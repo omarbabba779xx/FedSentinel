@@ -458,6 +458,195 @@ def privacy_report(noise_mult, sample_rate, rounds, delta):
     console.print(t)
 
 
+# ─── Federated Unlearning ──────────────────────────────────────────────────
+
+@cli.command()
+@click.option("--client-id", required=True, type=int, help="Client requesting unlearning")
+@click.option("--checkpoint", default="./results/best_model.pt")
+@click.option("--dataset", default="nsl_kdd")
+@click.option("--method", default="gradient_ascent",
+              type=click.Choice(["gradient_ascent", "ssd"]))
+@click.option("--reason", default="GDPR Article 17")
+def unlearn(client_id, checkpoint, dataset, method, reason):
+    """GDPR Article 17: remove client's contribution from global model."""
+    from data import load_dataset, NSLKDDPreprocessor, non_iid_dirichlet_split
+    from models import build_model
+    from federated_unlearning import FederatedUnlearningCoordinator
+    from utils.helpers import get_device
+
+    device = get_device()
+    state_dict = torch.load(checkpoint, map_location=device)
+    arch = state_dict.pop("__architecture__", "transformer")
+    input_size = state_dict.pop("__input_size__", 122)
+    num_classes = state_dict.pop("__num_classes__", 5)
+
+    model = build_model(arch, input_size, num_classes).to(device)
+    model.load_state_dict(state_dict)
+
+    df_train, _ = load_dataset(dataset)
+    preprocessor = NSLKDDPreprocessor()
+    X_train, y_train = preprocessor.fit_transform(df_train)
+    splits = non_iid_dirichlet_split(X_train, y_train, num_clients=5)
+    X_forget, y_forget = splits[client_id % len(splits)]
+    X_retain = np.vstack([splits[i][0] for i in range(len(splits)) if i != client_id % len(splits)])
+    y_retain = np.concatenate([splits[i][1] for i in range(len(splits)) if i != client_id % len(splits)])
+
+    coordinator = FederatedUnlearningCoordinator(model, method=method, device=device)
+    event = coordinator.request_unlearning(
+        client_id=client_id,
+        X_client=X_forget, y_client=y_forget,
+        X_retain_all=X_retain, y_retain_all=y_retain,
+        reason=reason,
+    )
+
+    console.print(f"[bold green]Unlearning complete![/bold green]")
+    console.print(f"Certificate: {event['certificate'][:32]}...")
+    console.print(f"Forget accuracy: {event['report']['final_forget_accuracy']:.3f}")
+    console.print(f"Unlearning successful: {event['report']['unlearning_successful']}")
+
+    # Save updated model
+    out_path = checkpoint.replace(".pt", "_unlearned.pt")
+    torch.save(model.state_dict(), out_path)
+    console.print(f"Updated model saved → {out_path}")
+
+
+# ─── MIA Audit ─────────────────────────────────────────────────────────────
+
+@cli.command()
+@click.option("--checkpoint", default="./results/best_model.pt")
+@click.option("--dataset", default="nsl_kdd")
+@click.option("--defense", default="none",
+              type=click.Choice(["none", "output_perturbation", "temperature_scaling", "confidence_masking"]))
+def mia_audit(checkpoint, dataset, defense):
+    """Run Membership Inference Attack audit + optional defense evaluation."""
+    from data import load_dataset, NSLKDDPreprocessor
+    from models import build_model
+    from attacks.membership_inference import LossThresholdAttack, MIADefense
+    from utils.helpers import get_device
+
+    device = get_device()
+    state_dict = torch.load(checkpoint, map_location=device)
+    arch = state_dict.pop("__architecture__", "transformer")
+    input_size = state_dict.pop("__input_size__", 122)
+    num_classes = state_dict.pop("__num_classes__", 5)
+
+    model = build_model(arch, input_size, num_classes).to(device)
+    model.load_state_dict(state_dict)
+
+    df_train, df_test = load_dataset(dataset)
+    preprocessor = NSLKDDPreprocessor()
+    X_train, y_train = preprocessor.fit_transform(df_train)
+    X_test, y_test = preprocessor.transform(df_test)
+
+    n = min(500, len(X_train), len(X_test))
+    attacker = LossThresholdAttack()
+    report = attacker.attack(model, X_train[:n], y_train[:n], X_test[:n], y_test[:n], device)
+
+    t = Table(title="MIA Audit Report")
+    t.add_column("Metric"); t.add_column("Value")
+    for k, v in report.items():
+        t.add_row(str(k), str(v))
+    console.print(t)
+
+    if defense != "none":
+        mia_def = MIADefense(defense_type=defense)
+        eff = mia_def.evaluate_defense_effectiveness(
+            model, X_train[:n], y_train[:n], X_test[:n], y_test[:n], device
+        )
+        console.print(f"\n[bold]Defense effectiveness ({defense}):[/bold]")
+        console.print(f"AUC before: {eff['auc_before']:.4f} → after: {eff['auc_after']:.4f} "
+                      f"(reduction: {eff['auc_reduction']:+.4f})")
+
+
+# ─── Dual Benchmark ────────────────────────────────────────────────────────
+
+@cli.command()
+@click.option("--rounds", default=10)
+@click.option("--byzantine", default=1)
+@click.option("--strategies", default="fedavg,krum,trimmed_mean,flame")
+def dual_benchmark(rounds, byzantine, strategies):
+    """Benchmark on both NSL-KDD and CICIDS2017 datasets."""
+    from evaluation.benchmark import run_dual_dataset_benchmark
+    results = run_dual_dataset_benchmark(
+        num_rounds=rounds,
+        num_byzantine=byzantine,
+        strategies=strategies.split(","),
+    )
+    console.print(f"[green]Dual benchmark complete! Results → ./results/dual_dataset_benchmark.json[/green]")
+
+
+# ─── Federated Eval ────────────────────────────────────────────────────────
+
+@cli.command()
+@click.option("--checkpoint", default="./results/best_model.pt")
+@click.option("--dataset", default="nsl_kdd")
+@click.option("--clients", default=5)
+def fed_eval(checkpoint, dataset, clients):
+    """Federated evaluation: clients eval locally, server aggregates metrics."""
+    from data import load_dataset, NSLKDDPreprocessor, non_iid_dirichlet_split
+    from data.dataset import train_val_split
+    from models import build_model
+    from evaluation.federated_eval import FederatedEvaluator
+    from utils.helpers import get_device
+
+    device = get_device()
+    state_dict = torch.load(checkpoint, map_location=device)
+    arch = state_dict.pop("__architecture__", "transformer")
+    input_size = state_dict.pop("__input_size__", 122)
+    num_classes = state_dict.pop("__num_classes__", 5)
+
+    model = build_model(arch, input_size, num_classes).to(device)
+    model.load_state_dict(state_dict)
+
+    df_train, _ = load_dataset(dataset)
+    preprocessor = NSLKDDPreprocessor()
+    X_train, y_train = preprocessor.fit_transform(df_train)
+    splits = non_iid_dirichlet_split(X_train, y_train, num_clients=clients)
+
+    client_data = {}
+    for cid, (Xc, yc) in enumerate(splits):
+        _, _, Xv, yv = train_val_split(Xc, yc)
+        client_data[cid] = (Xv, yv)
+
+    evaluator = FederatedEvaluator(num_classes=num_classes, device=device)
+    report = evaluator.run_evaluation_round(model, client_data, round_num=0)
+
+    t = Table(title="Federated Evaluation Report")
+    t.add_column("Metric"); t.add_column("Value")
+    for k, v in report.items():
+        if k != "per_client":
+            t.add_row(str(k), str(v))
+    console.print(t)
+
+    console.print("\n[bold]Per-client accuracy:[/bold]")
+    for cid, m in report.get("per_client", {}).items():
+        console.print(f"  Client {cid}: {m.get('accuracy', 0):.4f} ({m.get('num_samples', 0)} samples)")
+
+
+# ─── mTLS Cert Generation ──────────────────────────────────────────────────
+
+@cli.command()
+@click.option("--action", default="generate",
+              type=click.Choice(["generate", "verify", "client"]))
+@click.option("--client-id", default=0, type=int)
+@click.option("--cert-dir", default="./certs")
+def mtls(action, client_id, cert_dir):
+    """Generate or verify mTLS certificates for secure FL communication."""
+    from pathlib import Path
+    from server.mtls_config import generate_certificates, generate_client_certificate, verify_certificate_chain
+
+    cert_path = Path(cert_dir)
+    if action == "generate":
+        paths = generate_certificates(cert_dir=cert_path, force=True)
+        console.print(f"[green]Certificates generated:[/green] {paths}")
+    elif action == "client":
+        paths = generate_client_certificate(client_id, cert_dir=cert_path)
+        console.print(f"[green]Client {client_id} cert:[/green] {paths}")
+    elif action == "verify":
+        ok = verify_certificate_chain(cert_dir=cert_path)
+        console.print(f"[{'green' if ok else 'red'}]Chain valid: {ok}[/{'green' if ok else 'red'}]")
+
+
 # ─── API / Dashboard ───────────────────────────────────────────────────────
 
 @cli.command()
