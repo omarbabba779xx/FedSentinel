@@ -1,5 +1,5 @@
 """
-FedShield-IDS — Main entry point.
+FedSentinel — Main entry point.
 
 Commands:
   train           Run full FL training pipeline
@@ -36,9 +36,9 @@ console = Console()
 
 @click.group()
 def cli():
-    """FedShield-IDS: Privacy-Preserving Federated Intrusion Detection System"""
+    """FedSentinel: Privacy-Preserving Federated Intrusion Detection System"""
     console.print(Panel.fit(
-        "[bold blue]FedShield-IDS[/bold blue] v2.0\n"
+        "[bold blue]FedSentinel[/bold blue] v2.0\n"
         "Privacy-Preserving Collaborative Threat Detection\n"
         "[dim]FL • DP • ZKP • HE • Blockchain • Zero-Day • GNN • MAML[/dim]",
         border_style="blue",
@@ -198,8 +198,8 @@ def client(client_id, server_address, client_type, dataset):
         model_config=configs["model"], client_config=configs["client"], num_classes=5,
     )
     if client_type == "honest":
-        from clients import FedShieldClient
-        fl_client = FedShieldClient(**kwargs)
+        from clients import FedSentinelClient
+        fl_client = FedSentinelClient(**kwargs)
     elif client_type == "byzantine":
         from clients import ByzantineClient
         fl_client = ByzantineClient(**kwargs)
@@ -271,7 +271,7 @@ def explain(checkpoint, num_samples):
     """Generate SHAP explanations for model predictions."""
     from data import load_dataset, NSLKDDPreprocessor
     from models import build_model
-    from explainability.shap_explainer import FedShieldSHAPExplainer
+    from explainability.shap_explainer import FedSentinelSHAPExplainer
     from utils.helpers import get_device
 
     device = get_device()
@@ -289,7 +289,7 @@ def explain(checkpoint, num_samples):
     X_bg, _ = preprocessor.fit_transform(df_train)
     X_test, _ = preprocessor.transform(df_test)
 
-    explainer = FedShieldSHAPExplainer(model, X_bg[:200], device=device)
+    explainer = FedSentinelSHAPExplainer(model, X_bg[:200], device=device)
     shap_vals = explainer.explain_batch(X_test[:num_samples])
     explainer.plot_summary(shap_vals, X_test[:num_samples])
     console.print(f"[green]SHAP explanations generated for {num_samples} samples[/green]")

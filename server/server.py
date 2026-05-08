@@ -1,6 +1,6 @@
 """
 FL server entry point.
-Starts Flower server with FedShieldStrategy.
+Starts Flower server with FedSentinelStrategy.
 """
 
 import flwr as fl
@@ -10,12 +10,12 @@ from pathlib import Path
 from typing import Optional
 
 from models import build_model
-from server.strategy import FedShieldStrategy
+from server.strategy import FedSentinelStrategy
 from utils.logger import get_logger
 from utils.config import load_all_configs
 from utils.helpers import get_device
 
-logger = get_logger("FedShieldServer")
+logger = get_logger("FedSentinelServer")
 
 
 def create_strategy(
@@ -23,7 +23,7 @@ def create_strategy(
     initial_model: Optional[torch.nn.Module] = None,
     input_size: int = 122,
     num_classes: int = 5,
-) -> FedShieldStrategy:
+) -> FedSentinelStrategy:
     server_cfg = configs["server"]
     agg_cfg = server_cfg.get("aggregation", {})
     dp_cfg = configs["client"].get("privacy", {})
@@ -41,7 +41,7 @@ def create_strategy(
 
     Path("./results").mkdir(parents=True, exist_ok=True)
 
-    return FedShieldStrategy(
+    return FedSentinelStrategy(
         aggregation=agg_cfg.get("strategy", "fedavg"),
         num_byzantine=agg_cfg.get("krum_num_byzantine", 1),
         trimmed_mean_beta=agg_cfg.get("trimmed_mean_beta", 0.1),
@@ -73,7 +73,7 @@ def run_server(
     strategy = create_strategy(configs, initial_model, input_size, num_classes)
     address = f"{host}:{port}"
 
-    logger.info(f"Starting FedShield FL server on {address} | rounds={num_rounds}")
+    logger.info(f"Starting FedSentinel FL server on {address} | rounds={num_rounds}")
     logger.info(f"Aggregation: {configs['server']['aggregation']['strategy'].upper()}")
 
     fl.server.start_server(

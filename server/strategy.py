@@ -26,9 +26,9 @@ from utils.logger import get_logger
 from utils.helpers import save_json
 
 
-class FedShieldStrategy(fl.server.strategy.Strategy):
+class FedSentinelStrategy(fl.server.strategy.Strategy):
     """
-    FedShield aggregation strategy with full Byzantine robustness.
+    FedSentinel aggregation strategy with full Byzantine robustness.
     """
 
     def __init__(
@@ -62,7 +62,7 @@ class FedShieldStrategy(fl.server.strategy.Strategy):
         self.fraction_evaluate = fraction_evaluate
         self.results_path = results_path
         self.initial_parameters = initial_parameters
-        self.logger = get_logger("FedShieldStrategy")
+        self.logger = get_logger("FedSentinelStrategy")
 
         self.privacy_accountant = PrivacyAccountant(target_epsilon, target_delta) if dp_enabled else None
         self.free_rider_detector = FreeRiderDetector() if free_rider_detection else None

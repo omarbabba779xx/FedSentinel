@@ -1,5 +1,5 @@
 """
-FedShield-IDS REST API
+FedSentinel REST API
 FastAPI application exposing prediction, training metrics, and privacy endpoints.
 """
 
@@ -14,7 +14,7 @@ from api.routes import predictions, training
 from utils.logger import get_logger
 from utils.helpers import get_device
 
-logger = get_logger("FedShieldAPI")
+logger = get_logger("FedSentinelAPI")
 
 
 class AppState:
@@ -57,13 +57,13 @@ async def lifespan(app: FastAPI):
         except Exception as e:
             logger.warning(f"Could not load checkpoint: {e}")
 
-    logger.info(f"FedShield API started | device={app.state.device}")
+    logger.info(f"FedSentinel API started | device={app.state.device}")
     yield
-    logger.info("FedShield API shutting down")
+    logger.info("FedSentinel API shutting down")
 
 
 app = FastAPI(
-    title="FedShield-IDS API",
+    title="FedSentinel API",
     description="""
     **Federated Learning Intrusion Detection System**
 
@@ -95,7 +95,7 @@ app.include_router(training.router)
 @app.get("/", tags=["Health"])
 async def root():
     return {
-        "name": "FedShield-IDS",
+        "name": "FedSentinel",
         "version": "1.0.0",
         "status": "running",
         "model_loaded": app.state.model is not None,

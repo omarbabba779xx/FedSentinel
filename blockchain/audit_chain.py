@@ -1,14 +1,20 @@
 """
-Blockchain audit trail for FL rounds.
-Each FL round produces an immutable block recording:
-- Global model hash
-- Client contribution hashes
-- Aggregation strategy
-- Privacy budget consumed
-- Timestamp
+Hash-Chained Audit Log for FL rounds.
 
-Uses SHA-256 chaining (same principle as Bitcoin/Ethereum).
-For production: deploy on Hyperledger Fabric or Ethereum.
+NOTE: This is a hash-linked list (append-only log), NOT a decentralized blockchain.
+There is no consensus mechanism, no distributed nodes, and no smart contracts.
+The chain provides tamper-evidence (altering any block invalidates all subsequent
+hashes) but NOT Byzantine fault tolerance or decentralization.
+
+What this implements:
+  - Append-only SHA-256 linked list (each block contains prev_hash)
+  - Proof-of-work (difficulty=2) to make retroactive tampering expensive
+  - Full chain integrity verification at any time
+
+For production-grade decentralized audit:
+  → Hyperledger Fabric (permissioned, enterprise-grade)
+  → Ethereum / Polygon (public, smart contracts)
+  → IPFS + content-addressing for model hash storage
 """
 
 import hashlib

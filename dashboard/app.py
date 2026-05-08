@@ -1,5 +1,5 @@
 """
-FedShield-IDS Real-Time Monitoring Dashboard v2.0
+FedSentinel Real-Time Monitoring Dashboard v2.0
 Streamlit application with live FL training visualization.
 """
 
@@ -14,7 +14,7 @@ import plotly.express as px
 from plotly.subplots import make_subplots
 
 st.set_page_config(
-    page_title="FedShield-IDS Dashboard",
+    page_title="FedSentinel Dashboard",
     page_icon="🛡️",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -71,7 +71,7 @@ def load_incentive():
 
 # ─── Sidebar ──────────────────────────────────────────────────────────────
 with st.sidebar:
-    st.title("🛡️ FedShield-IDS")
+    st.title("🛡️ FedSentinel")
     st.caption("Federated Learning Intrusion Detection System v2.0")
     st.divider()
 
@@ -95,8 +95,8 @@ with st.sidebar:
     st.caption("✅ Personalized FL (Ditto / pFedMe)")
     st.caption("✅ Meta-Learning (MAML)")
     st.caption("✅ Homomorphic Encryption (CKKS)")
-    st.caption("✅ ZKP Gradient Proofs")
-    st.caption("✅ Blockchain Audit Trail")
+    st.caption("✅ Gradient Commitment Scheme (Sigma)")
+    st.caption("✅ Hash-Chained Audit Log")
     st.caption("✅ Zero-Day Detection")
     st.caption("✅ GNN-IDS")
     st.caption("✅ Adversarial Training")
@@ -112,7 +112,7 @@ with st.sidebar:
 
 
 # ─── Header ───────────────────────────────────────────────────────────────
-st.title("🛡️ FedShield-IDS — Federated Intrusion Detection")
+st.title("🛡️ FedSentinel — Federated Intrusion Detection")
 st.caption("Privacy-Preserving Collaborative Threat Detection · Real-Time Monitoring")
 st.divider()
 
@@ -520,7 +520,7 @@ with tab_inc:
 # ─── Footer ───────────────────────────────────────────────────────────────
 st.divider()
 st.caption(
-    "FedShield-IDS v2.0 · FL · DP · ZKP · HE · Blockchain · Zero-Day · GNN · MAML · ADWIN · Shapley"
+    "FedSentinel v2.0 · FL · DP · ZKP · HE · Blockchain · Zero-Day · GNN · MAML · ADWIN · Shapley"
 )
 
 if auto_refresh:

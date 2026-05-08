@@ -16,9 +16,9 @@ from utils.logger import get_logger
 from utils.helpers import get_device
 
 
-class FedShieldClient(fl.client.NumPyClient):
+class FedSentinelClient(fl.client.NumPyClient):
     """
-    Base FL client for FedShield-IDS.
+    Base FL client for FedSentinel.
     Handles:
     - Local training with full model pipeline
     - DP noise injection on weight updates

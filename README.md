@@ -38,7 +38,9 @@
 
 ## Overview
 
-**FedSentinel** addresses a critical challenge in cybersecurity: organizations (banks, telecoms, hospitals) each hold valuable threat intelligence data but cannot share it due to confidentiality laws (GDPR, PCI-DSS, HIPAA). Traditional IDS requires pooling all data centrally — a privacy and compliance nightmare.
+**FedSentinel** addresses a critical challenge in cybersecurity: organizations (banks, telecoms, hospitals) each hold valuable threat intelligence data but cannot share it due to confidentiality regulations (GDPR, PCI-DSS, HIPAA). Traditional IDS requires pooling all data centrally — a privacy and compliance nightmare.
+
+> **Scope:** FedSentinel is a **research prototype** implementing privacy-by-design principles. It is not a certified compliance solution. Achieving regulatory compliance (GDPR, HIPAA, PCI-DSS) in production requires additional legal, organizational, and infrastructure controls beyond this framework.
 
 **Our solution**: Each organization trains a local model on its own data. Only **model updates** (gradients) are shared — never raw traffic. The aggregation server produces a global model benefiting from all participants' knowledge, with cryptographic guarantees of privacy.
 
@@ -51,11 +53,12 @@
 │  Raw data leaves premises       │  Data NEVER leaves client                │
 │  Single point of failure        │  Distributed, resilient                  │
 │  Privacy violations (GDPR)      │  Differential Privacy (ε ≤ 1.0)         │
-│  Regulatory non-compliance      │  GDPR / PCI-DSS / HIPAA compliant        │
+│  Regulatory non-compliance      │  Privacy-by-design (GDPR-oriented)       │
 │  No inter-org collaboration     │  Collaborative learning                  │
 │  Static threat model            │  Continuously updated + drift detection  │
-│  No proof of honest updates     │  ZKP gradient proofs + Blockchain audit  │
-│  No attack attribution          │  Blockchain immutable audit trail        │
+│  No proof of honest updates     │  Gradient Commitment Scheme (Sigma) +    │
+│                                 │  Hash-chained audit log                  │
+│  No attack attribution          │  Hash-chained audit log (tamper-evident) │
 │  Unknown new attacks            │  Zero-day detection (VAE + IsoForest)    │
 │  No ownership proof             │  Model watermarking (Adi et al. 2018)    │
 │  Free-rider problem             │  Shapley value incentive mechanism       │
@@ -100,7 +103,7 @@
    │  ┌───────────────┐ │              │  │ DP-SGD (ε=1.0)       │ │
    │  │ DP-SGD Noise  │ │              │  └──────────────────────┘ │
    │  └───────────────┘ │              │  ┌──────────────────────┐ │
-   │  ┌───────────────┐ │              │  │ ZKP Gradient Proof   │ │
+   │  ┌───────────────┐ │              │  │ Gradient Commitment  │ │
    │  │ HE (CKKS)     │ │              │  └──────────────────────┘ │
    │  └───────────────┘ │              │  🔒 Local Data Only        │
    │  🔒 Local Data Only │              └──────────────────────────┘
@@ -143,13 +146,13 @@ Transformer ───┘
 ### Privacy & Cryptography Stack
 
 ```
-DP-SGD Flow:                    Homomorphic Encryption:        ZKP Flow:
+DP-SGD Flow:                    Homomorphic Encryption:        Gradient Commitment (Sigma):
   Δw = w_new - w_global           Client encrypts Δw            Client commits: c = H(Δw ‖ r)
         │                          with CKKS context              Server sends challenge: ch
-  ‖Δw‖₂ ← clip(C=1.0)             Server aggregates:             Client responds: s = r + ch·Δw
-        │                          Σ Enc(Δw_i) in cipher          Server verifies commitment
-  Δw̃ = Δw + N(0, σ²C²I)           Decrypt → Σ Δw_i              → Gradient integrity proven
-        │                          Raw updates never seen          without revealing Δw
+  ‖Δw‖₂ ← clip(C=1.0)             Server aggregates:             Client responds: HMAC(sk, ch‖c)
+        │                          Σ Enc(Δw_i) in cipher          Server verifies HMAC + H(Δw‖r)
+  Δw̃ = Δw + N(0, σ²C²I)           Decrypt → Σ Δw_i              → Binding + hiding, not formal ZKP
+        │                          Raw updates never seen          (no zk-SNARK circuit)
   Accounting: min(RDP, GDP)
   → (ε,δ)-DP certificate
 ```
@@ -242,22 +245,24 @@ DP-SGD Flow:                    Homomorphic Encryption:        ZKP Flow:
 |---------|-------------|------|
 | **CKKS Encryption** | TenSEAL CKKS scheme — encrypt gradients | `crypto/homomorphic.py` |
 | **HE Aggregation** | Sum encrypted gradients without decryption | `crypto/homomorphic.py` |
-| **Gradient Commitment** | SHA-256 + HMAC Sigma-protocol ZKP | `crypto/zkp.py` |
+| **Gradient Commitment** | SHA-256 + HMAC Sigma-protocol (commit-challenge-respond) | `crypto/zkp.py` |
 | **Batch Verification** | Verify N clients simultaneously | `crypto/zkp.py` |
 
 > The server aggregates gradients while they remain **fully encrypted**. No individual update is ever decrypted.
 
-### 9. Blockchain Audit Trail
+### 9. Hash-Chained Audit Log
+
+> **Note:** This is a SHA-256 hash-linked list (append-only log), **not** a decentralized blockchain. There is no consensus mechanism, no distributed nodes, and no smart contracts. It provides tamper-evidence — altering any block invalidates all subsequent hashes. For production decentralized audit, integrate Hyperledger Fabric or Ethereum.
 
 | Feature | Description | File |
 |---------|-------------|------|
 | **Block Structure** | Index, timestamp, data, hash, nonce | `blockchain/audit_chain.py` |
 | **SHA-256 Chaining** | Each block includes prev_hash | `blockchain/audit_chain.py` |
-| **Proof-of-Work** | Mining difficulty=2 prevents tampering | `blockchain/audit_chain.py` |
+| **Proof-of-Work** | Mining difficulty=2 makes retroactive tampering expensive | `blockchain/audit_chain.py` |
 | **Chain Verification** | Full integrity check at any time | `blockchain/audit_chain.py` |
-| **Audit Report** | JSON export for regulatory submission | `blockchain/audit_chain.py` |
+| **Audit Report** | JSON export for compliance review | `blockchain/audit_chain.py` |
 
-> Every FL round is immutably recorded: participants, model hashes, DP budget consumed, aggregation strategy. Cannot be altered retroactively.
+> Every FL round is append-only recorded: participants, model hashes, DP budget consumed, aggregation strategy. Tampering any block invalidates all subsequent hashes.
 
 ### 10. Zero-Day Attack Detection
 
@@ -376,6 +381,8 @@ DP-SGD Flow:                    Homomorphic Encryption:        ZKP Flow:
 ---
 
 ## Results & Benchmarks
+
+> **Dataset Note:** NSL-KDD (1999) is a well-known research benchmark — not modern network traffic. It lacks recent attack types (ransomware, APT, encrypted C2) and uses 1990s protocol distributions. Results demonstrate FL methodology validity; **real-world deployment requires retraining on current traffic** (e.g., CICIDS2017/2018, UNSW-NB15, or your own capture).
 
 ### Performance on NSL-KDD (50 rounds, 5 clients, Non-IID α=0.5, DP ε=1.0)
 
@@ -537,7 +544,7 @@ FedSentinel/
 │
 ├── crypto/                         # Cryptographic security
 │   ├── homomorphic.py              # CKKS homomorphic encryption (TenSEAL)
-│   └── zkp.py                      # Zero-knowledge gradient proofs
+│   └── zkp.py                      # Gradient commitment scheme (Sigma protocol)
 │
 ├── blockchain/                     # Audit trail
 │   └── audit_chain.py              # SHA-256 chain + proof-of-work
@@ -698,9 +705,14 @@ python main.py zero-day --threshold-percentile 95
 
 ### Live Traffic IDS
 
+> ⚠️ **Privilege Warning:** Live packet capture requires **root on Linux/macOS** (`sudo`) or **Administrator on Windows**. Scapy needs raw socket access. On Windows, install [Npcap](https://npcap.com/) first. Running without elevated privileges will raise a `PermissionError`.
+
 ```bash
-# Requires root/admin + Scapy + Npcap (Windows)
-python main.py live-capture --interface eth0 --duration 120
+# Linux/macOS — run as root
+sudo python main.py live-capture --interface eth0 --duration 120
+
+# Windows — run terminal as Administrator
+python main.py live-capture --interface "Ethernet" --duration 120
 ```
 
 ### Model Watermarking
@@ -785,6 +797,6 @@ python main.py privacy-report --noise-mult 1.1 --sample-rate 0.05 --rounds 100
 
 *Making collaborative threat intelligence possible without compromising privacy.*
 
-`FL` · `DP` · `ZKP` · `HE` · `Blockchain` · `Zero-Day` · `GNN` · `MAML` · `ADWIN` · `Shapley`
+`FL` · `DP` · `Sigma-Commit` · `HE` · `Hash-Chain` · `Zero-Day` · `GNN` · `MAML` · `ADWIN` · `Shapley`
 
 </div>

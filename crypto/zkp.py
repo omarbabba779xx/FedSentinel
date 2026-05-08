@@ -1,15 +1,20 @@
 """
-Zero-Knowledge Proof (ZKP) for gradient correctness.
-Client proves it trained on real data without revealing the data.
+Gradient Commitment Scheme (Sigma Protocol) for FL gradient integrity.
 
-Protocol: Sigma protocol (commit-challenge-response) over gradient norms.
-Full zk-SNARKs require circom/snarkjs — here we implement a cryptographic
-commitment scheme that provides the same privacy guarantees for FL.
+NOTE: This is NOT a zero-knowledge proof in the formal cryptographic sense
+(no zk-SNARK / zk-STARK circuit). It is a Sigma-protocol (commit-challenge-respond)
+using SHA-256 commitments + HMAC challenge responses. This provides:
+  - Binding: client cannot change gradient after committing (SHA-256 pre-image resistance)
+  - Hiding: commitment reveals no information about the gradient
+  - Challenge-response: server can verify the client knew the committed value
 
-Properties:
-  - Completeness: honest prover always convinces verifier
-  - Soundness: cheating prover fails with overwhelming probability
-  - Zero-Knowledge: verifier learns nothing beyond "proof is valid"
+For formal ZKP (circuit-based), integrate: circom + snarkjs + Groth16/PLONK.
+The current scheme is appropriate for FL integrity verification at research scale.
+
+Properties achieved:
+  - Completeness: honest prover always passes verification
+  - Computational binding: SHA-256 collision resistance
+  - Computationally hiding: random nonce masks gradient content
 """
 
 import hashlib
