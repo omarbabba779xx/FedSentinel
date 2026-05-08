@@ -1,0 +1,1899 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>FedSentinel — Command Center</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+<style>
+/* ═══════════════════════════════════════════════════════
+   FEDSENTINEL COMMAND CENTER — ULTRA LUXURY DARK THEME
+   ═══════════════════════════════════════════════════════ */
+
+:root {
+  --bg-void:      #030812;
+  --bg-deep:      #060d1f;
+  --bg-card:      #0b1628;
+  --bg-card2:     #0e1c35;
+  --border:       rgba(0,212,255,0.12);
+  --border-bright:rgba(0,212,255,0.35);
+  --cyan:         #00d4ff;
+  --cyan-dim:     rgba(0,212,255,0.15);
+  --purple:       #7b2fff;
+  --purple-dim:   rgba(123,47,255,0.15);
+  --green:        #00ff88;
+  --green-dim:    rgba(0,255,136,0.12);
+  --orange:       #ff8c42;
+  --red:          #ff3366;
+  --red-dim:      rgba(255,51,102,0.12);
+  --text:         #e2e8f0;
+  --text-muted:   #64748b;
+  --text-dim:     #94a3b8;
+  --font:         'Segoe UI', system-ui, sans-serif;
+  --font-mono:    'Consolas', 'Courier New', monospace;
+  --radius:       12px;
+  --radius-lg:    18px;
+  --shadow:       0 8px 32px rgba(0,0,0,0.6);
+  --glow-cyan:    0 0 20px rgba(0,212,255,0.25);
+  --glow-purple:  0 0 20px rgba(123,47,255,0.25);
+  --glow-green:   0 0 20px rgba(0,255,136,0.2);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg-void);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 14px;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ─── Animated grid background ─── */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(0,212,255,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,212,255,0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Pulsing radial glow */
+body::after {
+  content: '';
+  position: fixed;
+  top: -30%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 80vw;
+  height: 60vh;
+  background: radial-gradient(ellipse, rgba(0,212,255,0.06) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+  animation: pulse-glow 6s ease-in-out infinite;
+}
+
+@keyframes pulse-glow {
+  0%, 100% { opacity: 0.5; transform: translateX(-50%) scale(1); }
+  50%       { opacity: 1;   transform: translateX(-50%) scale(1.1); }
+}
+
+/* ─── Layout ─── */
+.app { position: relative; z-index: 1; display: flex; flex-direction: column; min-height: 100vh; }
+
+/* ─── Navbar ─── */
+.navbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 32px;
+  height: 64px;
+  background: rgba(6,13,31,0.92);
+  border-bottom: 1px solid var(--border);
+  backdrop-filter: blur(20px);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.nav-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.nav-logo {
+  width: 36px;
+  height: 36px;
+  background: linear-gradient(135deg, var(--cyan), var(--purple));
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  box-shadow: var(--glow-cyan);
+  animation: logo-spin 8s linear infinite;
+}
+
+@keyframes logo-spin {
+  0%   { box-shadow: 0 0 20px rgba(0,212,255,0.4); }
+  50%  { box-shadow: 0 0 30px rgba(123,47,255,0.5); }
+  100% { box-shadow: 0 0 20px rgba(0,212,255,0.4); }
+}
+
+.nav-title {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  background: linear-gradient(90deg, var(--cyan), var(--purple));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.nav-subtitle {
+  font-size: 11px;
+  color: var(--text-muted);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.nav-status {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.status-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  animation: blink 2s ease-in-out infinite;
+}
+
+.status-dot.green  { background: var(--green); box-shadow: 0 0 6px var(--green); }
+.status-dot.cyan   { background: var(--cyan);  box-shadow: 0 0 6px var(--cyan);  }
+.status-dot.orange { background: var(--orange);box-shadow: 0 0 6px var(--orange);}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.4; }
+}
+
+.nav-time {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--cyan);
+  letter-spacing: 1px;
+}
+
+/* ─── Main content ─── */
+.main {
+  display: flex;
+  flex: 1;
+  gap: 0;
+}
+
+/* ─── Sidebar ─── */
+.sidebar {
+  width: 220px;
+  min-height: calc(100vh - 64px);
+  background: rgba(6,13,31,0.8);
+  border-right: 1px solid var(--border);
+  padding: 20px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  backdrop-filter: blur(10px);
+  flex-shrink: 0;
+}
+
+.sidebar-section {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  padding: 16px 8px 6px;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 13px;
+  color: var(--text-dim);
+  border: 1px solid transparent;
+  user-select: none;
+}
+
+.nav-item:hover {
+  background: var(--cyan-dim);
+  border-color: var(--border);
+  color: var(--text);
+}
+
+.nav-item.active {
+  background: linear-gradient(90deg, rgba(0,212,255,0.12), rgba(123,47,255,0.08));
+  border-color: var(--border-bright);
+  color: var(--cyan);
+  box-shadow: inset 2px 0 0 var(--cyan);
+}
+
+.nav-item .icon { font-size: 16px; width: 20px; text-align: center; }
+
+.nav-badge {
+  margin-left: auto;
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 10px;
+  background: var(--purple);
+  color: #fff;
+  font-weight: 600;
+}
+
+.nav-badge.red  { background: var(--red); }
+.nav-badge.green{ background: var(--green); color: #000; }
+
+/* ─── Content ─── */
+.content {
+  flex: 1;
+  padding: 24px;
+  overflow-y: auto;
+  display: none;
+}
+
+.content.active { display: block; }
+
+/* ─── Page header ─── */
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+
+.page-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.page-title span {
+  font-size: 13px;
+  color: var(--text-muted);
+  font-weight: 400;
+  margin-left: 8px;
+}
+
+.btn {
+  padding: 8px 18px;
+  border-radius: 8px;
+  border: 1px solid var(--border-bright);
+  background: var(--cyan-dim);
+  color: var(--cyan);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: var(--font);
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+.btn:hover {
+  background: rgba(0,212,255,0.25);
+  box-shadow: var(--glow-cyan);
+}
+
+/* ─── KPI Strip ─── */
+.kpi-strip {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 14px;
+  margin-bottom: 24px;
+}
+
+.kpi-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 18px;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s;
+}
+
+.kpi-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  border-radius: 12px 12px 0 0;
+}
+
+.kpi-card.cyan::before  { background: linear-gradient(90deg, transparent, var(--cyan), transparent); }
+.kpi-card.purple::before{ background: linear-gradient(90deg, transparent, var(--purple), transparent);}
+.kpi-card.green::before { background: linear-gradient(90deg, transparent, var(--green), transparent); }
+.kpi-card.orange::before{ background: linear-gradient(90deg, transparent, var(--orange), transparent);}
+.kpi-card.red::before   { background: linear-gradient(90deg, transparent, var(--red), transparent);   }
+
+.kpi-card:hover {
+  border-color: var(--border-bright);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow);
+}
+
+.kpi-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.kpi-value {
+  font-size: 26px;
+  font-weight: 800;
+  font-family: var(--font-mono);
+  color: var(--text);
+  line-height: 1;
+}
+
+.kpi-value.cyan   { color: var(--cyan);   text-shadow: 0 0 20px rgba(0,212,255,0.4); }
+.kpi-value.green  { color: var(--green);  text-shadow: 0 0 20px rgba(0,255,136,0.4); }
+.kpi-value.orange { color: var(--orange); text-shadow: 0 0 20px rgba(255,140,66,0.4);}
+.kpi-value.red    { color: var(--red);    text-shadow: 0 0 20px rgba(255,51,102,0.4);}
+.kpi-value.purple { color: var(--purple); text-shadow: 0 0 20px rgba(123,47,255,0.4);}
+
+.kpi-delta {
+  font-size: 11px;
+  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.kpi-delta.up   { color: var(--green); }
+.kpi-delta.down { color: var(--red);   }
+.kpi-delta.flat { color: var(--text-muted); }
+
+/* ─── Grid layouts ─── */
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-bottom: 18px; }
+.grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 18px; margin-bottom: 18px; }
+.grid-13{ display: grid; grid-template-columns: 1fr 2fr; gap: 18px; margin-bottom: 18px; }
+.grid-31{ display: grid; grid-template-columns: 2fr 1fr; gap: 18px; margin-bottom: 18px; }
+
+/* ─── Cards ─── */
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 20px 22px;
+  position: relative;
+  overflow: hidden;
+}
+
+.card-glow-cyan::after {
+  content: '';
+  position: absolute;
+  bottom: -40px;
+  right: -40px;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(0,212,255,0.08), transparent);
+  pointer-events: none;
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 18px;
+}
+
+.card-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-dim);
+  letter-spacing: 0.3px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.card-title .icon { color: var(--cyan); }
+
+.tag {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: var(--cyan-dim);
+  color: var(--cyan);
+  border: 1px solid var(--border);
+  letter-spacing: 0.5px;
+}
+
+.tag.green  { background: var(--green-dim); color: var(--green); }
+.tag.purple { background: var(--purple-dim); color: var(--purple); }
+.tag.red    { background: var(--red-dim); color: var(--red); }
+
+/* ─── Chart container ─── */
+.chart-box { position: relative; width: 100%; }
+
+/* ─── Divider ─── */
+.hdivider {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 20px 0;
+}
+
+/* ─── Progress bar ─── */
+.progress-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.progress-label {
+  width: 90px;
+  font-size: 12px;
+  color: var(--text-dim);
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.progress-bar {
+  flex: 1;
+  height: 6px;
+  background: rgba(255,255,255,0.05);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: 6px;
+  transition: width 1.5s cubic-bezier(0.4,0,0.2,1);
+  position: relative;
+}
+
+.progress-fill::after {
+  content: '';
+  position: absolute;
+  top: 0; right: 0;
+  height: 100%;
+  width: 40px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3));
+  animation: shimmer 2s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  0%   { opacity: 0; }
+  50%  { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+.progress-cyan   { background: linear-gradient(90deg, rgba(0,212,255,0.6), var(--cyan)); }
+.progress-green  { background: linear-gradient(90deg, rgba(0,255,136,0.6), var(--green)); }
+.progress-purple { background: linear-gradient(90deg, rgba(123,47,255,0.6), var(--purple)); }
+.progress-orange { background: linear-gradient(90deg, rgba(255,140,66,0.6), var(--orange)); }
+.progress-red    { background: linear-gradient(90deg, rgba(255,51,102,0.6), var(--red)); }
+
+.progress-pct {
+  width: 40px;
+  font-size: 12px;
+  font-family: var(--font-mono);
+  color: var(--cyan);
+  flex-shrink: 0;
+}
+
+/* ─── Threat feed ─── */
+.threat-feed {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.threat-feed::-webkit-scrollbar { width: 4px; }
+.threat-feed::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+.threat-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--bg-card2);
+  border-radius: 8px;
+  border-left: 3px solid var(--cyan);
+  animation: slide-in 0.3s ease;
+}
+
+@keyframes slide-in {
+  from { opacity: 0; transform: translateX(-10px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+.threat-item.dos    { border-left-color: var(--red);    }
+.threat-item.probe  { border-left-color: var(--orange); }
+.threat-item.r2l    { border-left-color: var(--purple); }
+.threat-item.u2r    { border-left-color: #ff00cc;       }
+.threat-item.normal { border-left-color: var(--green);  }
+
+.threat-time {
+  font-size: 10px;
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+  white-space: nowrap;
+  margin-top: 1px;
+}
+
+.threat-body { flex: 1; }
+
+.threat-type {
+  font-size: 12px;
+  font-weight: 700;
+  margin-bottom: 2px;
+}
+
+.threat-item.dos    .threat-type { color: var(--red);    }
+.threat-item.probe  .threat-type { color: var(--orange); }
+.threat-item.r2l    .threat-type { color: var(--purple); }
+.threat-item.u2r    .threat-type { color: #ff00cc;       }
+.threat-item.normal .threat-type { color: var(--green);  }
+
+.threat-detail {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.threat-conf {
+  font-size: 11px;
+  font-family: var(--font-mono);
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+
+/* ─── Block chain visual ─── */
+.chain-row {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  overflow-x: auto;
+  padding: 10px 0 20px;
+}
+
+.chain-row::-webkit-scrollbar { height: 4px; }
+.chain-row::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+.block-card {
+  flex-shrink: 0;
+  width: 120px;
+  background: var(--bg-card2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 10px;
+  transition: all 0.2s;
+  cursor: pointer;
+}
+
+.block-card:hover {
+  border-color: var(--cyan);
+  box-shadow: 0 0 12px rgba(0,212,255,0.2);
+  transform: translateY(-3px);
+}
+
+.block-card.genesis {
+  border-color: var(--purple);
+  box-shadow: 0 0 8px rgba(123,47,255,0.2);
+}
+
+.block-num {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+.block-hash {
+  font-family: var(--font-mono);
+  color: var(--cyan);
+  font-size: 9px;
+  word-break: break-all;
+  margin-bottom: 6px;
+}
+
+.block-meta {
+  color: var(--text-dim);
+  line-height: 1.6;
+}
+
+.chain-arrow {
+  flex-shrink: 0;
+  color: var(--border-bright);
+  font-size: 18px;
+  padding: 0 4px;
+  animation: arrow-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes arrow-pulse {
+  0%, 100% { opacity: 0.4; }
+  50%       { opacity: 1; }
+}
+
+/* ─── Module status grid ─── */
+.module-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.module-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  background: var(--bg-card2);
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.module-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: var(--green);
+  box-shadow: 0 0 5px var(--green);
+  animation: blink 2s ease-in-out infinite;
+}
+
+/* ─── Gauge ─── */
+.gauge-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 10px 0;
+}
+
+/* ─── Table ─── */
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.data-table th {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  padding: 8px 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+
+.data-table td {
+  padding: 9px 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.03);
+  color: var(--text-dim);
+  transition: background 0.15s;
+}
+
+.data-table tr:hover td { background: rgba(0,212,255,0.04); }
+
+.data-table td .mono {
+  font-family: var(--font-mono);
+  color: var(--cyan);
+}
+
+.data-table td .status-ok    { color: var(--green); font-weight: 700; }
+.data-table td .status-warn  { color: var(--orange); }
+.data-table td .status-bad   { color: var(--red); font-weight: 700; }
+
+/* ─── Scrollbar ─── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 6px; }
+
+/* ─── Tooltip ─── */
+[title] { cursor: help; }
+
+/* ─── Responsive ─── */
+@media (max-width: 1200px) {
+  .kpi-strip { grid-template-columns: repeat(3, 1fr); }
+  .grid-3 { grid-template-columns: 1fr 1fr; }
+  .module-grid { grid-template-columns: repeat(2, 1fr); }
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- ═══ NAVBAR ═══ -->
+<nav class="navbar">
+  <div class="nav-brand">
+    <div class="nav-logo">🛡️</div>
+    <div>
+      <div class="nav-title">FedSentinel</div>
+      <div class="nav-subtitle">Federated Intrusion Detection System · v3.1</div>
+    </div>
+  </div>
+  <div class="nav-status">
+    <div class="status-pill"><div class="status-dot green"></div>FL Server Online</div>
+    <div class="status-pill"><div class="status-dot cyan"></div>5 Clients Active</div>
+    <div class="status-pill"><div class="status-dot orange"></div>DP Engaged ε=1.0</div>
+    <div class="nav-time" id="clock">--:--:--</div>
+  </div>
+</nav>
+
+<div class="main">
+
+<!-- ═══ SIDEBAR ═══ -->
+<aside class="sidebar">
+  <div class="sidebar-section">Overview</div>
+  <div class="nav-item active" onclick="showTab('overview')">
+    <span class="icon">🏠</span> Command Center
+  </div>
+
+  <div class="sidebar-section">Federated Learning</div>
+  <div class="nav-item" onclick="showTab('training')">
+    <span class="icon">📈</span> Training Monitor
+  </div>
+  <div class="nav-item" onclick="showTab('clients')">
+    <span class="icon">👥</span> Client Status
+    <span class="nav-badge green">5</span>
+  </div>
+  <div class="nav-item" onclick="showTab('aggregation')">
+    <span class="icon">⚡</span> Aggregation
+  </div>
+
+  <div class="sidebar-section">Security</div>
+  <div class="nav-item" onclick="showTab('privacy')">
+    <span class="icon">🔒</span> Privacy & DP
+  </div>
+  <div class="nav-item" onclick="showTab('crypto')">
+    <span class="icon">🔐</span> Cryptography
+  </div>
+  <div class="nav-item" onclick="showTab('threats')">
+    <span class="icon">⚔️</span> Threat Feed
+    <span class="nav-badge red" id="threat-badge">0</span>
+  </div>
+  <div class="nav-item" onclick="showTab('zeroday')">
+    <span class="icon">🚨</span> Zero-Day
+  </div>
+
+  <div class="sidebar-section">Intelligence</div>
+  <div class="nav-item" onclick="showTab('audit')">
+    <span class="icon">⛓️</span> Audit Chain
+  </div>
+  <div class="nav-item" onclick="showTab('shapley')">
+    <span class="icon">💰</span> Shapley Rewards
+  </div>
+  <div class="nav-item" onclick="showTab('drift')">
+    <span class="icon">📡</span> Drift Detection
+  </div>
+
+  <div class="sidebar-section">System</div>
+  <div class="nav-item" onclick="showTab('modules')">
+    <span class="icon">⚙️</span> All Modules
+    <span class="nav-badge green">20</span>
+  </div>
+</aside>
+
+<!-- ═══ PAGES ═══ -->
+
+<!-- ── OVERVIEW ── -->
+<div class="content active" id="tab-overview">
+  <div class="page-header">
+    <div>
+      <div class="page-title">Command Center <span>Real-time FL monitoring</span></div>
+    </div>
+    <button class="btn" onclick="refreshData()">⟳ &nbsp;Refresh</button>
+  </div>
+
+  <!-- KPI Strip -->
+  <div class="kpi-strip">
+    <div class="kpi-card cyan">
+      <div class="kpi-label">FL Round</div>
+      <div class="kpi-value cyan" id="kpi-round">47</div>
+      <div class="kpi-delta up">↑ Training</div>
+    </div>
+    <div class="kpi-card green">
+      <div class="kpi-label">Accuracy</div>
+      <div class="kpi-value green" id="kpi-acc">97.3%</div>
+      <div class="kpi-delta up" id="kpi-acc-delta">↑ +0.4%</div>
+    </div>
+    <div class="kpi-card purple">
+      <div class="kpi-label">Privacy ε</div>
+      <div class="kpi-value purple" id="kpi-eps">0.9841</div>
+      <div class="kpi-delta flat">Budget OK</div>
+    </div>
+    <div class="kpi-card orange">
+      <div class="kpi-label">Threats Detected</div>
+      <div class="kpi-value orange" id="kpi-threats">2,847</div>
+      <div class="kpi-delta up">↑ Live</div>
+    </div>
+    <div class="kpi-card red">
+      <div class="kpi-label">Byzantine</div>
+      <div class="kpi-value red">1/5</div>
+      <div class="kpi-delta flat">Filtered ✓</div>
+    </div>
+    <div class="kpi-card cyan">
+      <div class="kpi-label">Chain Blocks</div>
+      <div class="kpi-value cyan" id="kpi-blocks">48</div>
+      <div class="kpi-delta up">↑ Valid</div>
+    </div>
+  </div>
+
+  <!-- Row 1 -->
+  <div class="grid-31">
+    <div class="card card-glow-cyan">
+      <div class="card-header">
+        <div class="card-title"><span class="icon">📈</span> Federated Training — Accuracy per Round</div>
+        <span class="tag">Live</span>
+      </div>
+      <div class="chart-box" style="height:200px">
+        <canvas id="accChart"></canvas>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title"><span class="icon">🎯</span> Attack Distribution</div>
+        <span class="tag green">NSL-KDD</span>
+      </div>
+      <div class="chart-box" style="height:200px">
+        <canvas id="attackPie"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Row 2 -->
+  <div class="grid-3">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title"><span class="icon">🔒</span> Privacy Budget</div>
+        <span class="tag purple">RDP+GDP</span>
+      </div>
+      <div class="chart-box" style="height:160px">
+        <canvas id="epsBudget"></canvas>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title"><span class="icon">💰</span> Shapley Values</div>
+        <span class="tag">Round 47</span>
+      </div>
+      <div class="chart-box" style="height:160px">
+        <canvas id="shapleyBar"></canvas>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title"><span class="icon">⚡</span> Strategy Comparison</div>
+        <span class="tag">Byz-Robust</span>
+      </div>
+      <div class="chart-box" style="height:160px">
+        <canvas id="strategyRadar"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Row 3: Live Feed + Chain -->
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title"><span class="icon">🚨</span> Live Threat Feed</div>
+        <span class="tag red" id="live-count">0 events</span>
+      </div>
+      <div class="threat-feed" id="threat-feed"></div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title"><span class="icon">⛓️</span> Hash-Chained Audit Log</div>
+        <span class="tag green">Verified ✓</span>
+      </div>
+      <div class="chain-row" id="chain-visual"></div>
+      <div style="font-size:11px;color:var(--text-muted);margin-top:8px;">
+        SHA-256 append-only log · PoW difficulty=2 · Tamper-evident (not decentralized blockchain)
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── TRAINING ── -->
+<div class="content" id="tab-training">
+  <div class="page-header">
+    <div class="page-title">Training Monitor <span>50 rounds · 5 clients · Non-IID α=0.5</span></div>
+    <span class="tag">DP ε=1.0</span>
+  </div>
+
+  <div class="kpi-strip" style="grid-template-columns:repeat(4,1fr)">
+    <div class="kpi-card cyan">
+      <div class="kpi-label">Current Round</div>
+      <div class="kpi-value cyan">47 / 50</div>
+      <div class="kpi-delta up">94% complete</div>
+    </div>
+    <div class="kpi-card green">
+      <div class="kpi-label">Best Accuracy</div>
+      <div class="kpi-value green">97.6%</div>
+      <div class="kpi-delta up">Ditto · Round 45</div>
+    </div>
+    <div class="kpi-card orange">
+      <div class="kpi-label">Val Loss</div>
+      <div class="kpi-value orange">0.0812</div>
+      <div class="kpi-delta down">↓ -0.003</div>
+    </div>
+    <div class="kpi-card purple">
+      <div class="kpi-label">Convergence</div>
+      <div class="kpi-value purple">Stable</div>
+      <div class="kpi-delta flat">±0.2% last 5</div>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title"><span class="icon">📈</span> Accuracy — All Strategies</div>
+        <span class="tag">50 rounds</span>
+      </div>
+      <div class="chart-box" style="height:260px">
+        <canvas id="allStrategiesChart"></canvas>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title"><span class="icon">📉</span> Loss Convergence</div>
+        <span class="tag">FedAvg · FedProx</span>
+      </div>
+      <div class="chart-box" style="height:260px">
+        <canvas id="lossChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title"><span class="icon">🏆</span> Strategy Benchmark</div>
+        <span class="tag green">Final Accuracy</span>
+      </div>
+      <div class="chart-box" style="height:220px">
+        <canvas id="benchBar"></canvas>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title"><span class="icon">📊</span> Per-Class Detection Rates</div>
+        <span class="tag">FedAvg ε=1.0</span>
+      </div>
+      <br/>
+      <div class="progress-row"><div class="progress-label">Normal</div><div class="progress-bar"><div class="progress-fill progress-green" style="width:99.3%"></div></div><div class="progress-pct">99.3%</div></div>
+      <div class="progress-row"><div class="progress-label">DoS</div><div class="progress-bar"><div class="progress-fill progress-cyan" style="width:98.7%"></div></div><div class="progress-pct">98.7%</div></div>
+      <div class="progress-row"><div class="progress-label">Probe</div><div class="progress-bar"><div class="progress-fill progress-purple" style="width:96.1%"></div></div><div class="progress-pct">96.1%</div></div>
+      <div class="progress-row"><div class="progress-label">R2L</div><div class="progress-bar"><div class="progress-fill progress-orange" style="width:89.3%"></div></div><div class="progress-pct">89.3%</div></div>
+      <div class="progress-row"><div class="progress-label">U2R</div><div class="progress-bar"><div class="progress-fill progress-red" style="width:80.1%"></div></div><div class="progress-pct">80.1%</div></div>
+      <div style="font-size:11px;color:var(--text-muted);margin-top:12px;">
+        ⚠ Note: NSL-KDD is a 1999 benchmark. Results show FL methodology validity only; real-world deployment requires modern traffic data.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── PRIVACY ── -->
+<div class="content" id="tab-privacy">
+  <div class="page-header">
+    <div class="page-title">Privacy & Differential Privacy <span>Dual RDP+GDP accounting</span></div>
+    <span class="tag purple">ε = 0.9841 / 1.0</span>
+  </div>
+
+  <div class="kpi-strip" style="grid-template-columns:repeat(4,1fr)">
+    <div class="kpi-card purple">
+      <div class="kpi-label">ε consumed (RDP)</div>
+      <div class="kpi-value purple">0.9841</div>
+      <div class="kpi-delta up">↓ Budget OK</div>
+    </div>
+    <div class="kpi-card cyan">
+      <div class="kpi-label">ε consumed (GDP)</div>
+      <div class="kpi-value cyan">0.9112</div>
+      <div class="kpi-delta up">Tighter bound</div>
+    </div>
+    <div class="kpi-card green">
+      <div class="kpi-label">δ (failure prob)</div>
+      <div class="kpi-value green">1e-5</div>
+      <div class="kpi-delta flat">Fixed</div>
+    </div>
+    <div class="kpi-card orange">
+      <div class="kpi-label">Noise σ</div>
+      <div class="kpi-value orange">1.1</div>
+      <div class="kpi-delta flat">Clip C=1.0</div>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title"><span class="icon">🔒</span> Privacy Budget Consumption</div>
+        <span class="tag purple">47 rounds</span>
+      </div>
+      <div class="chart-box" style="height:240px">
+        <canvas id="privBudget"></canvas>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title"><span class="icon">⚖️</span> Privacy-Accuracy Trade-off</div>
+        <span class="tag">GDP tighter by ~12%</span>
+      </div>
+      <div class="chart-box" style="height:240px">
+        <canvas id="privAccChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:18px">
+    <div class="card-header">
+      <div class="card-title"><span class="icon">🔐</span> Gradient Commitment Scheme (Sigma Protocol)</div>
+      <span class="tag green">NOT formal ZKP</span>
+    </div>
+    <div style="color:var(--text-muted);font-size:12px;margin-bottom:16px;">
+      SHA-256 + HMAC commit-challenge-respond scheme. Provides binding + hiding. Does <strong style="color:var(--orange)">not</strong> use zk-SNARK/STARK circuits. For formal ZKP: integrate circom + snarkjs + Groth16.
+    </div>
+    <div class="grid-3">
+      <div style="background:var(--bg-card2);border-radius:10px;padding:14px;border:1px solid var(--border)">
+        <div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);margin-bottom:8px">1. Commit</div>
+        <div style="font-family:var(--font-mono);font-size:11px;color:var(--cyan)">c = SHA256(Δw ‖ nonce)</div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:6px">Client binds gradient. Server cannot alter.</div>
+      </div>
+      <div style="background:var(--bg-card2);border-radius:10px;padding:14px;border:1px solid var(--border)">
+        <div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);margin-bottom:8px">2. Challenge</div>
+        <div style="font-family:var(--font-mono);font-size:11px;color:var(--purple)">ch = random_bytes(32)</div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:6px">Server issues random challenge.</div>
+      </div>
+      <div style="background:var(--bg-card2);border-radius:10px;padding:14px;border:1px solid var(--border)">
+        <div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);margin-bottom:8px">3. Respond</div>
+        <div style="font-family:var(--font-mono);font-size:11px;color:var(--green)">σ = HMAC(sk, ch‖c)</div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:6px">Server verifies HMAC + recomputes hash.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── THREATS ── -->
+<div class="content" id="tab-threats">
+  <div class="page-header">
+    <div class="page-title">Threat Intelligence Feed <span>Live detection stream</span></div>
+    <span class="tag red" id="threats-total">2847 total</span>
+  </div>
+
+  <div class="kpi-strip" style="grid-template-columns:repeat(5,1fr)">
+    <div class="kpi-card green"><div class="kpi-label">Normal</div><div class="kpi-value green">47.1%</div></div>
+    <div class="kpi-card red"><div class="kpi-label">DoS</div><div class="kpi-value red">36.2%</div></div>
+    <div class="kpi-card orange"><div class="kpi-label">Probe</div><div class="kpi-value orange">11.7%</div></div>
+    <div class="kpi-card purple"><div class="kpi-label">R2L</div><div class="kpi-value purple">4.7%</div></div>
+    <div class="kpi-card cyan"><div class="kpi-label">U2R</div><div class="kpi-value cyan">0.3%</div></div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title"><span class="icon">🚨</span> Live Events</div>
+        <span class="tag red" id="feed2-count">0 new</span>
+      </div>
+      <div class="threat-feed" id="threat-feed2" style="max-height:400px"></div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title"><span class="icon">📊</span> Attack Timeline</div>
+        <span class="tag">Last 50 rounds</span>
+      </div>
+      <div class="chart-box" style="height:380px">
+        <canvas id="attackTimeline"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── CRYPTO ── -->
+<div class="content" id="tab-crypto">
+  <div class="page-header">
+    <div class="page-title">Cryptography Stack <span>HE · Sigma · mTLS</span></div>
+  </div>
+  <div class="grid-2" style="margin-bottom:18px">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title"><span class="icon">🔐</span> Homomorphic Encryption (CKKS)</div>
+        <span class="tag purple">TenSEAL</span>
+      </div>
+      <div style="font-size:12px;color:var(--text-muted);margin-bottom:16px;">Server aggregates encrypted gradients. Raw updates never decrypted individually.</div>
+      <div class="progress-row"><div class="progress-label">Throughput</div><div class="progress-bar"><div class="progress-fill progress-purple" style="width:62%"></div></div><div class="progress-pct">62%</div></div>
+      <div class="progress-row"><div class="progress-label">Poly Degree</div><div class="progress-bar"><div class="progress-fill progress-cyan" style="width:80%"></div></div><div class="progress-pct">8192</div></div>
+      <div class="progress-row"><div class="progress-label">Scale Bits</div><div class="progress-bar"><div class="progress-fill progress-green" style="width:71%"></div></div><div class="progress-pct">26</div></div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title"><span class="icon">🔒</span> mTLS Status</div>
+        <span class="tag green">Active</span>
+      </div>
+      <div style="font-size:12px;color:var(--text-muted);margin-bottom:16px;">Mutual TLS with per-client certificates. CA-signed server + client certs.</div>
+      <table class="data-table">
+        <tr><th>Certificate</th><th>Status</th><th>Expires</th></tr>
+        <tr><td>CA Root</td><td><span class="status-ok">Valid ✓</span></td><td class="mono">2026-05-07</td></tr>
+        <tr><td>Server cert</td><td><span class="status-ok">Valid ✓</span></td><td class="mono">2026-05-07</td></tr>
+        <tr><td>Client-1 cert</td><td><span class="status-ok">Valid ✓</span></td><td class="mono">2026-05-07</td></tr>
+        <tr><td>Client-2 cert</td><td><span class="status-ok">Valid ✓</span></td><td class="mono">2026-05-07</td></tr>
+        <tr><td>Client-3 cert</td><td><span class="status-ok">Valid ✓</span></td><td class="mono">2026-05-07</td></tr>
+      </table>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title"><span class="icon">🛡️</span> Model Watermark</div>
+      <span class="tag green">Embedded</span>
+    </div>
+    <div class="grid-3" style="margin-top:8px">
+      <div><div class="kpi-label">Trigger Accuracy</div><div class="kpi-value green" style="font-size:20px">92.4%</div></div>
+      <div><div class="kpi-label">Key Hash (SHA-256)</div><div style="font-family:var(--font-mono);font-size:10px;color:var(--cyan);word-break:break-all;margin-top:6px">a3f9d2e1b7c4...</div></div>
+      <div><div class="kpi-label">Ownership</div><div style="color:var(--green);font-size:13px;margin-top:6px;font-weight:700">✓ Verified — Adi et al. 2018</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── AUDIT ── -->
+<div class="content" id="tab-audit">
+  <div class="page-header">
+    <div class="page-title">Hash-Chained Audit Log <span>Append-only · SHA-256 · PoW=2</span></div>
+    <span class="tag green">Chain Valid ✓</span>
+  </div>
+  <div style="background:rgba(255,140,66,0.06);border:1px solid rgba(255,140,66,0.2);border-radius:10px;padding:12px 16px;margin-bottom:18px;font-size:12px;color:var(--orange);">
+    ℹ️ This is a <strong>hash-linked list</strong>, not a decentralized blockchain. No consensus mechanism, no distributed nodes. For production: Hyperledger Fabric / Ethereum / IPFS.
+  </div>
+  <div class="card" style="margin-bottom:18px">
+    <div class="card-header">
+      <div class="card-title"><span class="icon">⛓️</span> Block Chain</div>
+    </div>
+    <div class="chain-row" id="chain-full"></div>
+  </div>
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title"><span class="icon">📋</span> Round Records</div>
+    </div>
+    <table class="data-table">
+      <tr><th>#</th><th>Round</th><th>Strategy</th><th>Clients</th><th>Accuracy</th><th>ε</th><th>Model Hash</th><th>Status</th></tr>
+      <tr><td class="mono">47</td><td class="mono">47</td><td>FedAvg</td><td>5</td><td class="mono" style="color:var(--green)">97.3%</td><td class="mono">0.9841</td><td class="mono">a3f9d2e1...</td><td><span class="status-ok">✓</span></td></tr>
+      <tr><td class="mono">46</td><td class="mono">46</td><td>FedAvg</td><td>5</td><td class="mono" style="color:var(--green)">97.1%</td><td class="mono">0.9629</td><td class="mono">b7c41f8a...</td><td><span class="status-ok">✓</span></td></tr>
+      <tr><td class="mono">45</td><td class="mono">45</td><td>Ditto</td><td>5</td><td class="mono" style="color:var(--green)">97.6%</td><td class="mono">0.9415</td><td class="mono">c92de5b3...</td><td><span class="status-ok">✓</span></td></tr>
+      <tr><td class="mono">44</td><td class="mono">44</td><td>FLAME</td><td>4</td><td class="mono" style="color:var(--orange)">96.3%</td><td class="mono">0.9200</td><td class="mono">d45f6c7e...</td><td><span class="status-ok">✓</span></td></tr>
+      <tr><td class="mono">43</td><td class="mono">43</td><td>Krum</td><td>4</td><td class="mono" style="color:var(--orange)">95.8%</td><td class="mono">0.8985</td><td class="mono">e1a2b3c4...</td><td><span class="status-ok">✓</span></td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- ── SHAPLEY ── -->
+<div class="content" id="tab-shapley">
+  <div class="page-header">
+    <div class="page-title">Shapley Value Incentive <span>Monte Carlo · GTG Truncation</span></div>
+  </div>
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title"><span class="icon">💰</span> Client Shapley Values — Round 47</div>
+        <span class="tag">200 permutations</span>
+      </div>
+      <div class="chart-box" style="height:260px">
+        <canvas id="shapleyFull"></canvas>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title"><span class="icon">📈</span> Cumulative Rewards</div>
+        <span class="tag cyan">50 rounds</span>
+      </div>
+      <div class="chart-box" style="height:260px">
+        <canvas id="shapleyHistory"></canvas>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title"><span class="icon">⚖️</span> Client Contribution Table</div>
+    </div>
+    <table class="data-table">
+      <tr><th>Client</th><th>Type</th><th>Shapley φ</th><th>Selection Prob</th><th>Cumulative</th><th>Status</th></tr>
+      <tr><td>Client-1 (Bank)</td><td>Honest</td><td class="mono" style="color:var(--green)">0.312</td><td class="mono">31.2%</td><td class="mono">14.8</td><td><span class="status-ok">Active ✓</span></td></tr>
+      <tr><td>Client-2 (Telecom)</td><td>Honest</td><td class="mono" style="color:var(--green)">0.287</td><td class="mono">28.7%</td><td class="mono">13.6</td><td><span class="status-ok">Active ✓</span></td></tr>
+      <tr><td>Client-3 (Hospital)</td><td>Honest</td><td class="mono" style="color:var(--green)">0.241</td><td class="mono">24.1%</td><td class="mono">11.4</td><td><span class="status-ok">Active ✓</span></td></tr>
+      <tr><td>Client-4 (Gov)</td><td>Honest</td><td class="mono" style="color:var(--orange)">0.148</td><td class="mono">14.8%</td><td class="mono">7.0</td><td><span class="status-ok">Active ✓</span></td></tr>
+      <tr><td>Client-5 (ISP)</td><td>Byzantine</td><td class="mono" style="color:var(--red)">0.012</td><td class="mono">1.2%</td><td class="mono">0.6</td><td><span class="status-bad">⚠ Free-Rider</span></td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- ── ZERO-DAY ── -->
+<div class="content" id="tab-zeroday">
+  <div class="page-header">
+    <div class="page-title">Zero-Day Detection <span>VAE + Isolation Forest ensemble</span></div>
+    <span class="tag red">3 Anomalies</span>
+  </div>
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title"><span class="icon">🚨</span> Reconstruction Error (VAE)</div>
+        <span class="tag">95th pct threshold</span>
+      </div>
+      <div class="chart-box" style="height:260px">
+        <canvas id="vaeChart"></canvas>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title"><span class="icon">🌲</span> Isolation Forest Scores</div>
+        <span class="tag orange">contamination=5%</span>
+      </div>
+      <div class="chart-box" style="height:260px">
+        <canvas id="isoChart"></canvas>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title"><span class="icon">📊</span> Ensemble Score = 0.5×VAE + 0.5×IsoForest</div>
+    </div>
+    <div style="font-size:12px;color:var(--text-muted);margin-bottom:16px;">
+      Flows with ensemble score > threshold flagged as potential zero-day attacks. 3 anomalies detected in current session (novel traffic patterns not seen in NSL-KDD training).
+    </div>
+    <div class="progress-row"><div class="progress-label">Normal flows</div><div class="progress-bar"><div class="progress-fill progress-green" style="width:95%"></div></div><div class="progress-pct">95%</div></div>
+    <div class="progress-row"><div class="progress-label">Known attacks</div><div class="progress-bar"><div class="progress-fill progress-orange" style="width:4%"></div></div><div class="progress-pct">4%</div></div>
+    <div class="progress-row"><div class="progress-label">Zero-day flags</div><div class="progress-bar"><div class="progress-fill progress-red" style="width:1%"></div></div><div class="progress-pct">1%</div></div>
+  </div>
+</div>
+
+<!-- ── DRIFT ── -->
+<div class="content" id="tab-drift">
+  <div class="page-header">
+    <div class="page-title">Concept Drift Detection <span>ADWIN · Adaptive Windowing</span></div>
+  </div>
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title"><span class="icon">📡</span> Drift Events per Client</div>
+      </div>
+      <div class="chart-box" style="height:240px">
+        <canvas id="driftChart"></canvas>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title"><span class="icon">🌊</span> ADWIN Window Size</div>
+        <span class="tag">O(log n) memory</span>
+      </div>
+      <div class="chart-box" style="height:240px">
+        <canvas id="adwinChart"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── CLIENTS ── -->
+<div class="content" id="tab-clients">
+  <div class="page-header">
+    <div class="page-title">Client Status <span>5 nodes · 1 Byzantine detected</span></div>
+  </div>
+  <div class="grid-3">
+    <div class="card" style="border-color:rgba(0,255,136,0.3)">
+      <div class="card-header"><div class="card-title"><span class="icon">🏦</span> Client-1 — Bank</div><span class="tag green">Honest</span></div>
+      <div class="progress-row"><div class="progress-label">Accuracy</div><div class="progress-bar"><div class="progress-fill progress-green" style="width:97%"></div></div><div class="progress-pct">97.3%</div></div>
+      <div class="progress-row"><div class="progress-label">Samples</div><div class="progress-bar"><div class="progress-fill progress-cyan" style="width:80%"></div></div><div class="progress-pct">4,000</div></div>
+      <div class="progress-row"><div class="progress-label">Shapley φ</div><div class="progress-bar"><div class="progress-fill progress-purple" style="width:31%"></div></div><div class="progress-pct">0.312</div></div>
+    </div>
+    <div class="card" style="border-color:rgba(0,255,136,0.3)">
+      <div class="card-header"><div class="card-title"><span class="icon">📡</span> Client-2 — Telecom</div><span class="tag green">Honest</span></div>
+      <div class="progress-row"><div class="progress-label">Accuracy</div><div class="progress-bar"><div class="progress-fill progress-green" style="width:96%"></div></div><div class="progress-pct">96.8%</div></div>
+      <div class="progress-row"><div class="progress-label">Samples</div><div class="progress-bar"><div class="progress-fill progress-cyan" style="width:76%"></div></div><div class="progress-pct">3,800</div></div>
+      <div class="progress-row"><div class="progress-label">Shapley φ</div><div class="progress-bar"><div class="progress-fill progress-purple" style="width:29%"></div></div><div class="progress-pct">0.287</div></div>
+    </div>
+    <div class="card" style="border-color:rgba(0,255,136,0.3)">
+      <div class="card-header"><div class="card-title"><span class="icon">🏥</span> Client-3 — Hospital</div><span class="tag green">Async</span></div>
+      <div class="progress-row"><div class="progress-label">Accuracy</div><div class="progress-bar"><div class="progress-fill progress-green" style="width:95%"></div></div><div class="progress-pct">95.2%</div></div>
+      <div class="progress-row"><div class="progress-label">Samples</div><div class="progress-bar"><div class="progress-fill progress-cyan" style="width:64%"></div></div><div class="progress-pct">3,200</div></div>
+      <div class="progress-row"><div class="progress-label">Staleness τ</div><div class="progress-bar"><div class="progress-fill progress-orange" style="width:33%"></div></div><div class="progress-pct">α=0.5</div></div>
+    </div>
+    <div class="card" style="border-color:rgba(0,255,136,0.2)">
+      <div class="card-header"><div class="card-title"><span class="icon">🏛️</span> Client-4 — Gov</div><span class="tag">Honest</span></div>
+      <div class="progress-row"><div class="progress-label">Accuracy</div><div class="progress-bar"><div class="progress-fill progress-green" style="width:94%"></div></div><div class="progress-pct">94.1%</div></div>
+      <div class="progress-row"><div class="progress-label">Samples</div><div class="progress-bar"><div class="progress-fill progress-cyan" style="width:48%"></div></div><div class="progress-pct">2,400</div></div>
+      <div class="progress-row"><div class="progress-label">Shapley φ</div><div class="progress-bar"><div class="progress-fill progress-purple" style="width:15%"></div></div><div class="progress-pct">0.148</div></div>
+    </div>
+    <div class="card" style="border-color:rgba(255,51,102,0.3)">
+      <div class="card-header"><div class="card-title"><span class="icon">⚠️</span> Client-5 — ISP</div><span class="tag red">Byzantine</span></div>
+      <div style="font-size:12px;color:var(--red);margin-bottom:12px;">Sign-flip attack detected. Filtered by Multi-Krum.</div>
+      <div class="progress-row"><div class="progress-label">Gradient</div><div class="progress-bar"><div class="progress-fill progress-red" style="width:100%"></div></div><div class="progress-pct">FLIP</div></div>
+      <div class="progress-row"><div class="progress-label">Shapley φ</div><div class="progress-bar"><div class="progress-fill progress-red" style="width:1%"></div></div><div class="progress-pct">0.012</div></div>
+    </div>
+    <div class="card" style="background:var(--bg-card2);border-style:dashed;opacity:0.5">
+      <div class="card-title" style="margin-top:30px;text-align:center;color:var(--text-muted)">+ Add Client</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── AGGREGATION ── -->
+<div class="content" id="tab-aggregation">
+  <div class="page-header">
+    <div class="page-title">Aggregation Engine <span>Byzantine-robust strategies</span></div>
+    <span class="tag">Active: FedAvg</span>
+  </div>
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title"><span class="icon">🛡️</span> Robustness under Byzantine Attack</div>
+        <span class="tag red">n=5, 1 byz</span>
+      </div>
+      <div class="chart-box" style="height:280px">
+        <canvas id="byzantineChart"></canvas>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title"><span class="icon">📊</span> Gradient Compression</div>
+        <span class="tag">Up to 3200×</span>
+      </div>
+      <br/>
+      <div class="progress-row"><div class="progress-label">None (1×)</div><div class="progress-bar"><div class="progress-fill progress-cyan" style="width:100%"></div></div><div class="progress-pct">100%</div></div>
+      <div class="progress-row"><div class="progress-label">Top-K (10×)</div><div class="progress-bar"><div class="progress-fill progress-green" style="width:10%"></div></div><div class="progress-pct">10%</div></div>
+      <div class="progress-row"><div class="progress-label">SignSGD (32×)</div><div class="progress-bar"><div class="progress-fill progress-purple" style="width:3.1%"></div></div><div class="progress-pct">3.1%</div></div>
+      <div class="progress-row"><div class="progress-label">Quant 8b (4×)</div><div class="progress-bar"><div class="progress-fill progress-orange" style="width:25%"></div></div><div class="progress-pct">25%</div></div>
+      <div class="progress-row"><div class="progress-label">Hybrid 3200×</div><div class="progress-bar"><div class="progress-fill progress-red" style="width:0.03%"></div></div><div class="progress-pct">0.03%</div></div>
+      <div style="font-size:11px;color:var(--text-muted);margin-top:14px;">Bandwidth relative to uncompressed. Top-K + Quantization hybrid = 3200× reduction, -1.4% accuracy.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── MODULES ── -->
+<div class="content" id="tab-modules">
+  <div class="page-header">
+    <div class="page-title">All Modules <span>20 active · Research prototype</span></div>
+    <span class="tag green">All Systems Go</span>
+  </div>
+  <div class="card">
+    <div class="module-grid">
+      <div class="module-item"><div class="module-dot"></div>FedAvg / FedProx</div>
+      <div class="module-item"><div class="module-dot"></div>Krum / Multi-Krum</div>
+      <div class="module-item"><div class="module-dot"></div>FLAME / FLTrust</div>
+      <div class="module-item"><div class="module-dot"></div>DP-SGD (RDP+GDP)</div>
+      <div class="module-item"><div class="module-dot"></div>SecAgg Masking</div>
+      <div class="module-item"><div class="module-dot"></div>CKKS Homomorphic Enc</div>
+      <div class="module-item"><div class="module-dot"></div>Gradient Commitment (Sigma)</div>
+      <div class="module-item"><div class="module-dot"></div>Hash-Chained Audit Log</div>
+      <div class="module-item"><div class="module-dot"></div>mTLS (Flower gRPC)</div>
+      <div class="module-item"><div class="module-dot"></div>AsyncFL (FedBuff)</div>
+      <div class="module-item"><div class="module-dot"></div>Ditto / pFedMe</div>
+      <div class="module-item"><div class="module-dot"></div>FedMAML (Few-Shot)</div>
+      <div class="module-item"><div class="module-dot"></div>Zero-Day (VAE+IsoForest)</div>
+      <div class="module-item"><div class="module-dot"></div>GNN-IDS (GAT)</div>
+      <div class="module-item"><div class="module-dot"></div>Adversarial PGD Training</div>
+      <div class="module-item"><div class="module-dot"></div>Gradient Compression</div>
+      <div class="module-item"><div class="module-dot"></div>ADWIN Drift Detection</div>
+      <div class="module-item"><div class="module-dot"></div>Model Watermarking</div>
+      <div class="module-item"><div class="module-dot"></div>Shapley Incentive</div>
+      <div class="module-item"><div class="module-dot"></div>Federated Unlearning</div>
+      <div class="module-item"><div class="module-dot"></div>MIA Defense</div>
+      <div class="module-item"><div class="module-dot"></div>Model Inversion Defense</div>
+      <div class="module-item"><div class="module-dot"></div>Split Learning</div>
+      <div class="module-item"><div class="module-dot"></div>SHAP / LIME Explainability</div>
+    </div>
+    <div style="margin-top:16px;padding:12px;background:rgba(255,140,66,0.06);border:1px solid rgba(255,140,66,0.15);border-radius:8px;font-size:11px;color:var(--orange)">
+      ⚠ Research prototype. Not a certified compliance solution. Gradient Commitment ≠ formal ZKP (no zk-SNARK). Hash-chain ≠ decentralized blockchain. NSL-KDD (1999) results = methodology validation only.
+    </div>
+  </div>
+</div>
+
+</div><!-- /main -->
+</div><!-- /app -->
+
+<script>
+/* ═══════════════════════════════════════════════════════
+   DATA SIMULATION
+   ═══════════════════════════════════════════════════════ */
+
+const R = (a, b) => a + Math.random() * (b - a);
+const RI = (a, b) => Math.floor(R(a, b + 1));
+
+// Generate 50 rounds of training data
+function genRounds() {
+  const rounds = [];
+  let acc = 0.82, loss = 0.45, eps = 0;
+  for (let i = 1; i <= 50; i++) {
+    acc = Math.min(0.978, acc + R(0.003, 0.012) * (1 - acc / 0.98));
+    loss = Math.max(0.04, loss * R(0.92, 0.98));
+    eps += R(0.018, 0.024);
+    rounds.push({ r: i, acc, loss, eps: Math.min(1.0, eps) });
+  }
+  return rounds;
+}
+
+const rounds = genRounds();
+const CHART_DEFAULTS = {
+  animation: { duration: 1200, easing: 'easeInOutQuart' },
+  plugins: { legend: { labels: { color: '#94a3b8', font: { size: 11 } } } },
+  scales: {
+    x: { grid: { color: 'rgba(0,212,255,0.06)' }, ticks: { color: '#64748b', font: { size: 10 } } },
+    y: { grid: { color: 'rgba(0,212,255,0.06)' }, ticks: { color: '#64748b', font: { size: 10 } } }
+  }
+};
+
+const STRATEGY_COLORS = {
+  FedAvg: '#00d4ff', FedProx: '#00ff88', MultiKrum: '#7b2fff',
+  FLAME: '#ff8c42', FLTrust: '#ff3366', Ditto: '#ffd700', Async: '#00ffcc'
+};
+
+/* ─── Clock ─── */
+function updateClock() {
+  const t = new Date();
+  document.getElementById('clock').textContent =
+    t.toTimeString().slice(0, 8);
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+/* ─── Tab navigation ─── */
+function showTab(id) {
+  document.querySelectorAll('.content').forEach(e => e.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(e => e.classList.remove('active'));
+  document.getElementById('tab-' + id).classList.add('active');
+  event.currentTarget.classList.add('active');
+}
+
+/* ─── Charts ─── */
+function mkChart(id, cfg) {
+  const el = document.getElementById(id);
+  if (!el) return null;
+  return new Chart(el.getContext('2d'), cfg);
+}
+
+// 1. Accuracy line chart (overview)
+const labels = rounds.map(r => 'R' + r.r);
+mkChart('accChart', {
+  type: 'line',
+  data: {
+    labels,
+    datasets: [{
+      label: 'FL Accuracy',
+      data: rounds.map(r => +(r.acc * 100).toFixed(2)),
+      borderColor: '#00d4ff', backgroundColor: 'rgba(0,212,255,0.08)',
+      fill: true, tension: 0.4, pointRadius: 0, borderWidth: 2,
+    }, {
+      label: 'Centralized',
+      data: rounds.map(() => 98.2),
+      borderColor: 'rgba(0,255,136,0.5)', borderDash: [4, 4],
+      pointRadius: 0, borderWidth: 1.5,
+    }]
+  },
+  options: { ...CHART_DEFAULTS, responsive: true, maintainAspectRatio: false,
+    plugins: { ...CHART_DEFAULTS.plugins, tooltip: { mode: 'index', intersect: false } } }
+});
+
+// 2. Attack pie
+mkChart('attackPie', {
+  type: 'doughnut',
+  data: {
+    labels: ['Normal', 'DoS', 'Probe', 'R2L', 'U2R'],
+    datasets: [{ data: [47.1, 36.2, 11.7, 4.7, 0.3],
+      backgroundColor: ['#00ff88','#ff3366','#ff8c42','#7b2fff','#00d4ff'],
+      borderColor: '#060d1f', borderWidth: 3 }]
+  },
+  options: { responsive: true, maintainAspectRatio: false, cutout: '60%',
+    plugins: { legend: { position: 'right', labels: { color: '#94a3b8', font: { size: 11 }, padding: 12 } } } }
+});
+
+// 3. Epsilon budget gauge
+const epsRounds = rounds.map(r => r.eps);
+mkChart('epsBudget', {
+  type: 'line',
+  data: {
+    labels,
+    datasets: [{
+      label: 'ε RDP', data: epsRounds.map(e => +e.toFixed(4)),
+      borderColor: '#7b2fff', fill: true, backgroundColor: 'rgba(123,47,255,0.1)',
+      tension: 0.4, pointRadius: 0, borderWidth: 2
+    }, {
+      label: 'ε GDP', data: epsRounds.map(e => +(e * 0.926).toFixed(4)),
+      borderColor: '#00d4ff', fill: false, tension: 0.4, pointRadius: 0, borderWidth: 1.5, borderDash: [3,3]
+    }, {
+      label: 'Budget (1.0)', data: rounds.map(() => 1.0),
+      borderColor: 'rgba(255,51,102,0.6)', borderDash: [6,3], pointRadius: 0, borderWidth: 1.5, fill: false
+    }]
+  },
+  options: { ...CHART_DEFAULTS, responsive: true, maintainAspectRatio: false }
+});
+
+// 4. Shapley bar (overview)
+mkChart('shapleyBar', {
+  type: 'bar',
+  data: {
+    labels: ['C-1', 'C-2', 'C-3', 'C-4', 'C-5'],
+    datasets: [{ label: 'Shapley φ', data: [0.312, 0.287, 0.241, 0.148, 0.012],
+      backgroundColor: ['#00ff88','#00d4ff','#7b2fff','#ff8c42','#ff3366'],
+      borderRadius: 6 }]
+  },
+  options: { ...CHART_DEFAULTS, responsive: true, maintainAspectRatio: false,
+    plugins: { ...CHART_DEFAULTS.plugins, legend: { display: false } } }
+});
+
+// 5. Strategy radar
+mkChart('strategyRadar', {
+  type: 'radar',
+  data: {
+    labels: ['Accuracy', 'Byz-Robust', 'Convergence', 'Privacy', 'Speed'],
+    datasets: [
+      { label: 'FedAvg', data: [97, 40, 90, 85, 95], borderColor: '#00d4ff', backgroundColor: 'rgba(0,212,255,0.1)', pointBackgroundColor: '#00d4ff' },
+      { label: 'FLAME', data: [96, 90, 80, 78, 75], borderColor: '#ff8c42', backgroundColor: 'rgba(255,140,66,0.08)', pointBackgroundColor: '#ff8c42' },
+      { label: 'FLTrust', data: [97, 92, 85, 80, 78], borderColor: '#7b2fff', backgroundColor: 'rgba(123,47,255,0.08)', pointBackgroundColor: '#7b2fff' },
+    ]
+  },
+  options: { responsive: true, maintainAspectRatio: false,
+    scales: { r: { grid: { color: 'rgba(0,212,255,0.08)' }, angleLines: { color: 'rgba(0,212,255,0.08)' }, ticks: { color: '#64748b', font: { size: 9 }, backdropColor: 'transparent' }, pointLabels: { color: '#94a3b8', font: { size: 10 } } } },
+    plugins: { legend: { labels: { color: '#94a3b8', font: { size: 10 } } } } }
+});
+
+// 6. All strategies chart (training tab)
+function genStrategy(start, speed, noise) {
+  let acc = start;
+  return rounds.map(r => {
+    acc = Math.min(0.985, acc + R(0.003, speed) * (1 - acc / 0.99));
+    return +(acc * 100).toFixed(2);
+  });
+}
+mkChart('allStrategiesChart', {
+  type: 'line',
+  data: {
+    labels,
+    datasets: [
+      { label: 'FedAvg', data: genStrategy(0.82, 0.012, 0.3), borderColor: '#00d4ff', fill: false, tension: 0.4, pointRadius: 0, borderWidth: 2 },
+      { label: 'FedProx', data: genStrategy(0.83, 0.013, 0.25), borderColor: '#00ff88', fill: false, tension: 0.4, pointRadius: 0, borderWidth: 2 },
+      { label: 'Multi-Krum', data: genStrategy(0.80, 0.010, 0.4), borderColor: '#7b2fff', fill: false, tension: 0.4, pointRadius: 0, borderWidth: 2 },
+      { label: 'FLAME', data: genStrategy(0.79, 0.009, 0.4), borderColor: '#ff8c42', fill: false, tension: 0.4, pointRadius: 0, borderWidth: 2 },
+      { label: 'Ditto', data: genStrategy(0.84, 0.014, 0.2), borderColor: '#ffd700', fill: false, tension: 0.4, pointRadius: 0, borderWidth: 2 },
+    ]
+  },
+  options: { ...CHART_DEFAULTS, responsive: true, maintainAspectRatio: false }
+});
+
+// 7. Loss chart
+mkChart('lossChart', {
+  type: 'line',
+  data: {
+    labels,
+    datasets: [
+      { label: 'FedAvg Loss', data: rounds.map(r => +r.loss.toFixed(4)), borderColor: '#00d4ff', fill: true, backgroundColor: 'rgba(0,212,255,0.06)', tension: 0.4, pointRadius: 0, borderWidth: 2 },
+      { label: 'FedProx Loss', data: rounds.map(r => +(r.loss * R(0.92, 0.98)).toFixed(4)), borderColor: '#00ff88', fill: false, tension: 0.4, pointRadius: 0, borderWidth: 1.5, borderDash: [4,3] },
+    ]
+  },
+  options: { ...CHART_DEFAULTS, responsive: true, maintainAspectRatio: false }
+});
+
+// 8. Benchmark bar
+mkChart('benchBar', {
+  type: 'bar',
+  data: {
+    labels: ['FedAvg', 'FedProx', 'M-Krum', 'FLAME', 'FLTrust', 'Async', 'Ditto', 'pFedMe', 'MAML'],
+    datasets: [{ label: 'Final Accuracy (%)',
+      data: [97.1, 97.3, 96.5, 96.3, 97.2, 96.8, 97.6, 97.4, 97.4],
+      backgroundColor: ['#00d4ff','#00ff88','#7b2fff','#ff8c42','#ff3366','#00ffcc','#ffd700','#ff79c6','#bd93f9'],
+      borderRadius: 6 }]
+  },
+  options: { ...CHART_DEFAULTS, responsive: true, maintainAspectRatio: false, indexAxis: 'y',
+    scales: { x: { ...CHART_DEFAULTS.scales.x, min: 95, max: 98.5 }, y: { ...CHART_DEFAULTS.scales.y } },
+    plugins: { ...CHART_DEFAULTS.plugins, legend: { display: false } } }
+});
+
+// 9. Privacy budget chart
+mkChart('privBudget', {
+  type: 'line',
+  data: {
+    labels,
+    datasets: [
+      { label: 'ε RDP', data: rounds.map(r => +r.eps.toFixed(4)), borderColor: '#7b2fff', fill: true, backgroundColor: 'rgba(123,47,255,0.1)', tension: 0.4, pointRadius: 0, borderWidth: 2 },
+      { label: 'ε GDP (tighter)', data: rounds.map(r => +(r.eps * 0.926).toFixed(4)), borderColor: '#00d4ff', fill: false, tension: 0.4, pointRadius: 0, borderWidth: 1.5 },
+      { label: 'Target ε=1.0', data: rounds.map(() => 1.0), borderColor: 'rgba(255,51,102,0.7)', borderDash: [6,3], pointRadius: 0, borderWidth: 1.5, fill: false }
+    ]
+  },
+  options: { ...CHART_DEFAULTS, responsive: true, maintainAspectRatio: false }
+});
+
+// 10. Privacy-accuracy tradeoff
+mkChart('privAccChart', {
+  type: 'line',
+  data: {
+    labels: ['ε=0.1', 'ε=0.5', 'ε=1.0', 'ε=2.0', 'ε=5.0', 'ε=∞'],
+    datasets: [{
+      label: 'Accuracy (%)', data: [91.2, 94.8, 97.1, 97.4, 97.5, 97.8],
+      borderColor: '#00ff88', backgroundColor: 'rgba(0,255,136,0.08)',
+      fill: true, tension: 0.4, pointRadius: 5, pointBackgroundColor: '#00ff88', borderWidth: 2
+    }]
+  },
+  options: { ...CHART_DEFAULTS, responsive: true, maintainAspectRatio: false }
+});
+
+// 11. Attack timeline
+mkChart('attackTimeline', {
+  type: 'bar',
+  data: {
+    labels,
+    datasets: [
+      { label: 'DoS', data: rounds.map(() => RI(30, 60)), backgroundColor: 'rgba(255,51,102,0.7)', stack: 's' },
+      { label: 'Probe', data: rounds.map(() => RI(5, 20)), backgroundColor: 'rgba(255,140,66,0.7)', stack: 's' },
+      { label: 'R2L', data: rounds.map(() => RI(2, 8)), backgroundColor: 'rgba(123,47,255,0.7)', stack: 's' },
+      { label: 'U2R', data: rounds.map(() => RI(0, 2)), backgroundColor: 'rgba(255,0,204,0.7)', stack: 's' },
+    ]
+  },
+  options: { ...CHART_DEFAULTS, responsive: true, maintainAspectRatio: false }
+});
+
+// 12. Byzantine chart
+mkChart('byzantineChart', {
+  type: 'line',
+  data: {
+    labels: ['0 byz', '1 byz', '2 byz'],
+    datasets: [
+      { label: 'FedAvg', data: [97.1, 70.2, 62.4], borderColor: '#ff3366', fill: false, tension: 0.3, pointRadius: 6, borderWidth: 2 },
+      { label: 'Multi-Krum', data: [96.5, 96.2, 95.8], borderColor: '#7b2fff', fill: false, tension: 0.3, pointRadius: 6, borderWidth: 2 },
+      { label: 'FLAME', data: [96.3, 96.0, 95.5], borderColor: '#ff8c42', fill: false, tension: 0.3, pointRadius: 6, borderWidth: 2 },
+      { label: 'FLTrust', data: [97.2, 97.0, 96.8], borderColor: '#00ff88', fill: false, tension: 0.3, pointRadius: 6, borderWidth: 2 },
+    ]
+  },
+  options: { ...CHART_DEFAULTS, responsive: true, maintainAspectRatio: false }
+});
+
+// 13. Shapley full
+mkChart('shapleyFull', {
+  type: 'bar',
+  data: {
+    labels: ['Client-1\n(Bank)', 'Client-2\n(Telecom)', 'Client-3\n(Hospital)', 'Client-4\n(Gov)', 'Client-5\n(ISP)'],
+    datasets: [{
+      label: 'Shapley φ',
+      data: [0.312, 0.287, 0.241, 0.148, 0.012],
+      backgroundColor: ['#00ff88','#00d4ff','#7b2fff','#ff8c42','#ff3366'],
+      borderRadius: 8
+    }]
+  },
+  options: { ...CHART_DEFAULTS, responsive: true, maintainAspectRatio: false,
+    plugins: { ...CHART_DEFAULTS.plugins, legend: { display: false } } }
+});
+
+// 14. Shapley history
+const histData = [0,0,0,0,0];
+const shapleyHist = rounds.map(() => {
+  const vals = [R(0.28,0.34), R(0.25,0.31), R(0.21,0.27), R(0.12,0.18), R(0.01,0.04)];
+  const sum = vals.reduce((a,b)=>a+b);
+  return vals.map(v => +(v/sum).toFixed(3));
+});
+mkChart('shapleyHistory', {
+  type: 'line',
+  data: {
+    labels,
+    datasets: [
+      { label: 'C-1', data: shapleyHist.map(r=>r[0]), borderColor: '#00ff88', fill: false, tension: 0.4, pointRadius: 0, borderWidth: 2 },
+      { label: 'C-2', data: shapleyHist.map(r=>r[1]), borderColor: '#00d4ff', fill: false, tension: 0.4, pointRadius: 0, borderWidth: 2 },
+      { label: 'C-3', data: shapleyHist.map(r=>r[2]), borderColor: '#7b2fff', fill: false, tension: 0.4, pointRadius: 0, borderWidth: 2 },
+      { label: 'C-5 (byz)', data: shapleyHist.map(r=>r[4]), borderColor: '#ff3366', fill: false, tension: 0.4, pointRadius: 0, borderWidth: 1.5, borderDash: [3,3] },
+    ]
+  },
+  options: { ...CHART_DEFAULTS, responsive: true, maintainAspectRatio: false }
+});
+
+// 15. VAE chart
+const normalScores = Array.from({length: 50}, () => R(0.02, 0.12));
+const anomalyIdx = [15, 28, 41];
+const vaeScores = [...normalScores];
+anomalyIdx.forEach(i => vaeScores[i] = R(0.35, 0.55));
+mkChart('vaeChart', {
+  type: 'scatter',
+  data: {
+    datasets: [
+      { label: 'Normal', data: vaeScores.map((v,i) => anomalyIdx.includes(i)?null:{x:i,y:v}),
+        backgroundColor: 'rgba(0,212,255,0.6)', pointRadius: 4 },
+      { label: 'Anomaly', data: vaeScores.map((v,i) => anomalyIdx.includes(i)?{x:i,y:v}:null),
+        backgroundColor: '#ff3366', pointRadius: 8, pointStyle: 'triangle' },
+      { label: 'Threshold', data: [{x:0,y:0.25},{x:49,y:0.25}],
+        type: 'line', borderColor: 'rgba(255,140,66,0.7)', borderDash: [4,3], pointRadius: 0, fill: false, borderWidth: 1.5 }
+    ]
+  },
+  options: { ...CHART_DEFAULTS, responsive: true, maintainAspectRatio: false }
+});
+
+// 16. Isolation Forest
+const isoScores = Array.from({length: 50}, (_,i) => ({
+  x: i, y: anomalyIdx.includes(i) ? -R(0.4, 0.6) : -R(0.05, 0.2)
+}));
+mkChart('isoChart', {
+  type: 'scatter',
+  data: {
+    datasets: [
+      { label: 'Normal', data: isoScores.filter((_,i) => !anomalyIdx.includes(i)), backgroundColor: 'rgba(0,255,136,0.5)', pointRadius: 4 },
+      { label: 'Anomaly', data: isoScores.filter((_,i) => anomalyIdx.includes(i)), backgroundColor: '#ff3366', pointRadius: 8, pointStyle: 'triangle' },
+    ]
+  },
+  options: { ...CHART_DEFAULTS, responsive: true, maintainAspectRatio: false }
+});
+
+// 17. Drift chart
+mkChart('driftChart', {
+  type: 'bar',
+  data: {
+    labels: ['C-1', 'C-2', 'C-3', 'C-4', 'C-5'],
+    datasets: [{ label: 'Drift events', data: [3, 2, 5, 1, 0],
+      backgroundColor: ['#00d4ff','#00ff88','#ff8c42','#7b2fff','rgba(255,255,255,0.2)'],
+      borderRadius: 6 }]
+  },
+  options: { ...CHART_DEFAULTS, responsive: true, maintainAspectRatio: false, plugins: { ...CHART_DEFAULTS.plugins, legend: { display: false } } }
+});
+
+// 18. ADWIN window
+mkChart('adwinChart', {
+  type: 'line',
+  data: {
+    labels: rounds.map(r => 'R'+r.r),
+    datasets: [{
+      label: 'Window Size', data: rounds.map((_, i) => {
+        const base = 200 + i * 10;
+        return anomalyIdx.includes(i) ? 20 : Math.min(500, base + RI(-20, 20));
+      }),
+      borderColor: '#00d4ff', fill: true, backgroundColor: 'rgba(0,212,255,0.07)', tension: 0.3, pointRadius: 0, borderWidth: 2
+    }]
+  },
+  options: { ...CHART_DEFAULTS, responsive: true, maintainAspectRatio: false }
+});
+
+/* ─── Threat feed ─── */
+const ATTACK_TYPES = ['DoS', 'Probe', 'R2L', 'U2R', 'Normal'];
+const ATTACK_DETAILS = {
+  DoS:    ['SYN flood from 192.168.1.x', 'HTTP flood detected', 'ICMP flood burst', 'UDP amplification'],
+  Probe:  ['Port scan 1-1024', 'OS fingerprint attempt', 'Service banner grab', 'nmap sweep detected'],
+  R2L:    ['Failed SSH login x48', 'FTP brute-force', 'Telnet credential spray', 'HTTP auth bypass attempt'],
+  U2R:    ['Buffer overflow attempt', 'Privilege escalation', 'Kernel exploit pattern', 'SUID abuse'],
+  Normal: ['HTTP GET /api/health', 'DNS lookup resolved', 'TLS handshake ok', 'HTTPS session opened'],
+};
+const CLASS_WEIGHTS = [0.05, 0.55, 0.25, 0.12, 0.03];
+
+let totalThreats = 2847;
+const feedEls = ['threat-feed', 'threat-feed2'];
+
+function addThreat() {
+  const rnd = Math.random();
+  let cumul = 0, typeIdx = 0;
+  for (let i = 0; i < CLASS_WEIGHTS.length; i++) {
+    cumul += CLASS_WEIGHTS[i];
+    if (rnd < cumul) { typeIdx = i; break; }
+  }
+  const type = ATTACK_TYPES[typeIdx];
+  const detail = ATTACK_DETAILS[type][RI(0, ATTACK_DETAILS[type].length - 1)];
+  const conf = (R(0.82, 0.998)).toFixed(3);
+  const now = new Date();
+  const timeStr = now.toTimeString().slice(0,8);
+  const cls = type.toLowerCase();
+  if (type !== 'Normal') totalThreats++;
+
+  const html = `
+    <div class="threat-item ${cls}">
+      <div class="threat-time">${timeStr}</div>
+      <div class="threat-body">
+        <div class="threat-type">${type}</div>
+        <div class="threat-detail">${detail}</div>
+      </div>
+      <div class="threat-conf">${conf}</div>
+    </div>`;
+
+  feedEls.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.insertAdjacentHTML('afterbegin', html);
+      while (el.children.length > 30) el.removeChild(el.lastChild);
+    }
+  });
+
+  document.getElementById('kpi-threats').textContent = totalThreats.toLocaleString();
+  document.getElementById('threats-total').textContent = totalThreats.toLocaleString() + ' total';
+  const badge = document.getElementById('threat-badge');
+  badge.textContent = parseInt(badge.textContent || 0) + (type !== 'Normal' ? 1 : 0);
+  const lc = document.getElementById('live-count');
+  if (lc) lc.textContent = (parseInt(lc.textContent) || 0) + 1 + ' events';
+}
+
+// Seed initial events
+for (let i = 0; i < 8; i++) addThreat();
+setInterval(addThreat, R(800, 2200));
+
+/* ─── Blockchain visual ─── */
+function buildChain(containerId, count) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  const hashes = Array.from({length: count}, () => Math.random().toString(16).slice(2, 18));
+  el.innerHTML = '';
+  for (let i = 0; i < count; i++) {
+    if (i > 0) el.innerHTML += '<div class="chain-arrow">→</div>';
+    const cls = i === 0 ? 'genesis' : '';
+    el.innerHTML += `
+      <div class="block-card ${cls}" title="Block #${i}">
+        <div class="block-num">${i === 0 ? 'Genesis' : 'Block #' + i}</div>
+        <div class="block-hash">00${hashes[i]}...</div>
+        <div class="block-meta">
+          Round: ${i}<br/>
+          Clients: ${i === 0 ? 0 : 5}<br/>
+          ε: ${i === 0 ? '0.0000' : (0.021 * i).toFixed(4)}
+        </div>
+      </div>`;
+  }
+}
+
+buildChain('chain-visual', 6);
+buildChain('chain-full', 10);
+
+/* ─── KPI animation ─── */
+function animCount(el, target, decimals, suffix) {
+  let current = 0;
+  const step = target / 40;
+  const timer = setInterval(() => {
+    current = Math.min(current + step, target);
+    el.textContent = current.toFixed(decimals) + (suffix || '');
+    if (current >= target) clearInterval(timer);
+  }, 30);
+}
+
+setTimeout(() => {
+  animCount(document.getElementById('kpi-round'), 47, 0);
+  animCount(document.getElementById('kpi-blocks'), 48, 0);
+  animCount(document.getElementById('kpi-eps'), 0.9841, 4);
+}, 300);
+
+/* ─── Live accuracy update ─── */
+let roundNum = 47;
+setInterval(() => {
+  const el = document.getElementById('kpi-acc');
+  if (el) {
+    const v = 97.3 + R(-0.3, 0.3);
+    el.textContent = v.toFixed(1) + '%';
+  }
+}, 5000);
+
+/* ─── Refresh ─── */
+function refreshData() {
+  buildChain('chain-visual', 6);
+  buildChain('chain-full', 10);
+  addThreat();
+}
+</script>
+</body>
+</html>

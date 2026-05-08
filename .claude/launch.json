@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "FedSentinel UI",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "7410", "--directory", "dashboard/ui"],
+      "port": 7410
+    }
+  ]
+}
