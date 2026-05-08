@@ -23,13 +23,8 @@ jobs:
         run: pip install flake8
 
       - name: Run flake8
-        run: |
-          flake8 . \
-            --count \
-            --max-line-length=120 \
-            --extend-ignore=E203,W503 \
-            --exclude=.git,__pycache__,venv,.venv,build,dist \
-            --statistics
+        # All config lives in .flake8 at repo root — no flags needed here
+        run: flake8 . --count --statistics
 
   test:
     name: Tests (pytest)
