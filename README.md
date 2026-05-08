@@ -567,7 +567,7 @@ The command center UI is a standalone dark-theme dashboard at `dashboard/ui/inde
 
 The main landing page shows the complete system state at a glance.
 
-![Command Center](docs/screenshots/01_command_center.png)
+<img src="https://github.com/omarbabba779xx/FedSentinel/releases/download/v3.1-screenshots/01_command_center.png" alt="Command Center" width="100%"/>
 
 **What you see:**
 - **Top KPI strip**: FL round counter, live accuracy (updated every 5s), privacy ε consumed vs budget, threats detected counter, Byzantine client count, audit chain block count
@@ -585,7 +585,7 @@ The main landing page shows the complete system state at a glance.
 
 Deep-dive into the federated learning training process.
 
-![Training Monitor](docs/screenshots/02_training_monitor.png)
+<img src="https://github.com/omarbabba779xx/FedSentinel/releases/download/v3.1-screenshots/02_training_monitor.png" alt="Training Monitor" width="100%"/>
 
 **What you see:**
 - **All-strategies accuracy chart**: 5 strategies (FedAvg, FedProx, Multi-Krum, FLAME, Ditto) over 50 rounds — Ditto consistently highest at ~97.6%
@@ -600,7 +600,7 @@ Deep-dive into the federated learning training process.
 
 Full view of the privacy budget and the gradient commitment scheme.
 
-![Privacy & DP](docs/screenshots/03_privacy_dp.png)
+<img src="https://github.com/omarbabba779xx/FedSentinel/releases/download/v3.1-screenshots/03_privacy_dp.png" alt="Privacy & DP" width="100%"/>
 
 **What you see:**
 - **4 KPI cards**: ε consumed (RDP=0.9841, GDP=0.9112), δ failure probability (1e-5), noise σ=1.1
@@ -618,7 +618,7 @@ Full view of the privacy budget and the gradient commitment scheme.
 
 CKKS homomorphic encryption, mTLS certificates, and model watermarking.
 
-![Cryptography](docs/screenshots/04_cryptography.png)
+<img src="https://github.com/omarbabba779xx/FedSentinel/releases/download/v3.1-screenshots/04_cryptography.png" alt="Cryptography" width="100%"/>
 
 **What you see:**
 - **CKKS HE panel**: throughput gauge (62%), polynomial degree 8192, scale bits 26 — all TenSEAL parameters
@@ -631,7 +631,7 @@ CKKS homomorphic encryption, mTLS certificates, and model watermarking.
 
 Real-time live detection stream with attack timeline history.
 
-![Threat Feed](docs/screenshots/05_threat_feed.png)
+<img src="https://github.com/omarbabba779xx/FedSentinel/releases/download/v3.1-screenshots/05_threat_feed.png" alt="Threat Feed" width="100%"/>
 
 **What you see:**
 - **5 KPI bars**: live % breakdown by class (Normal 47.1%, DoS 36.2%, Probe 11.7%, R2L 4.7%, U2R 0.3%)
@@ -644,7 +644,7 @@ Real-time live detection stream with attack timeline history.
 
 Every FL round immutably recorded with SHA-256 linking.
 
-![Audit Chain](docs/screenshots/06_audit_chain.png)
+<img src="https://github.com/omarbabba779xx/FedSentinel/releases/download/v3.1-screenshots/06_audit_chain.png" alt="Audit Chain" width="100%"/>
 
 **What you see:**
 - **Orange disclaimer banner**: honest statement that this is a hash-linked list, not a decentralized blockchain, with production alternatives (Hyperledger Fabric / Ethereum / IPFS)
@@ -657,7 +657,7 @@ Every FL round immutably recorded with SHA-256 linking.
 
 Fair contribution attribution and free-rider detection.
 
-![Shapley Rewards](docs/screenshots/07_shapley_rewards.png)
+<img src="https://github.com/omarbabba779xx/FedSentinel/releases/download/v3.1-screenshots/07_shapley_rewards.png" alt="Shapley Rewards" width="100%"/>
 
 **What you see:**
 - **Client Shapley Values bar**: per-client for round 47 — Client-1 (Bank) leads at φ=0.312, Client-5 (ISP Byzantine) near zero at φ=0.012
@@ -670,7 +670,7 @@ Fair contribution attribution and free-rider detection.
 
 VAE + Isolation Forest ensemble for unknown attack detection.
 
-![Zero-Day](docs/screenshots/08_zero_day.png)
+<img src="https://github.com/omarbabba779xx/FedSentinel/releases/download/v3.1-screenshots/08_zero_day.png" alt="Zero-Day" width="100%"/>
 
 **What you see:**
 - **VAE Reconstruction Error scatter**: 50 flow samples — normal flows as cyan dots (low reconstruction error), 3 anomalies as red triangles far above the orange 95th-percentile threshold line
@@ -683,7 +683,7 @@ VAE + Isolation Forest ensemble for unknown attack detection.
 
 ADWIN adaptive windowing monitors distribution shift in real time.
 
-![Drift Detection](docs/screenshots/09_drift_detection.png)
+<img src="https://github.com/omarbabba779xx/FedSentinel/releases/download/v3.1-screenshots/09_drift_detection.png" alt="Drift Detection" width="100%"/>
 
 **What you see:**
 - **Drift Events per Client bar**: Client-3 (Hospital) has 5 drift events (most variable traffic), Client-4 (Gov) only 1, Client-5 (Byzantine) 0
@@ -695,7 +695,7 @@ ADWIN adaptive windowing monitors distribution shift in real time.
 
 Individual monitoring panel for all 5 federated clients.
 
-![Client Status](docs/screenshots/10_client_status.png)
+<img src="https://github.com/omarbabba779xx/FedSentinel/releases/download/v3.1-screenshots/10_client_status.png" alt="Client Status" width="100%"/>
 
 **What you see:**
 - **5 client cards**: Bank, Telecom, Hospital (async with staleness α=0.5), Gov, and ISP
@@ -710,7 +710,7 @@ Individual monitoring panel for all 5 federated clients.
 
 Byzantine robustness comparison and gradient compression ratios.
 
-![Aggregation](docs/screenshots/11_aggregation.png)
+<img src="https://github.com/omarbabba779xx/FedSentinel/releases/download/v3.1-screenshots/11_aggregation.png" alt="Aggregation" width="100%"/>
 
 **What you see:**
 - **Byzantine Robustness line chart**: accuracy at 0/1/2 Byzantine clients for FedAvg (collapses), Multi-Krum, FLAME, FLTrust — FLTrust most stable, FedAvg crashes from 97.1% to 62.4% at 2 Byzantine
@@ -722,7 +722,7 @@ Byzantine robustness comparison and gradient compression ratios.
 
 Full system status grid — 24 active research modules.
 
-![All Modules](docs/screenshots/12_all_modules.png)
+<img src="https://github.com/omarbabba779xx/FedSentinel/releases/download/v3.1-screenshots/12_all_modules.png" alt="All Modules" width="100%"/>
 
 **What you see:**
 - **24-module green status grid**: every module with animated green dot and blinking status
